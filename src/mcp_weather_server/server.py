@@ -83,7 +83,7 @@ def get_closest_utc_index(hourly_times: List[str]) -> int:
 
 # Add a weather tool
 @mcp.tool()
-async def get_current_weather(city: Annotated[str ,Field(description="The name of the city to fetch weather information for.")]) -> Annotated[str, Field(description="A string describing the current weather condition and temperature in the specified city, or an error message if the request fails.")]:
+async def get_current_weather(city: Annotated[str ,Field(description="The name of the city to fetch weather information for, PLEASE NOTE English name only, if the parameter city isn't English please translate to English before invoking this function.")]) -> Annotated[str, Field(description="A string describing the current weather condition and temperature in the specified city, or an error message if the request fails.")]:
 
     """Get current weather information for a specified city.
     It extracts the current hour's temperature and weather code, maps
@@ -120,7 +120,7 @@ async def get_current_weather(city: Annotated[str ,Field(description="The name o
 
 @mcp.tool()
 async def get_weather_byDateTimeRange(
-    city: Annotated[str, Field(description="The name of the city to fetch weather information for.")],
+    city: Annotated[str, Field(description="The name of the city to fetch weather information for, PLEASE NOTE English name only, if the parameter city isn't English please translate to English before invoking this function.")],
     start_date: Annotated[str, Field(description="Start date in format YYYY-MM-DD, please follow ISO 8601 format")],
     end_date: Annotated[str, Field(description="End date in format YYYY-MM-DD , please follow ISO 8601 format")]
 ) -> Annotated[str, Field(description="A summary of hourly weather data for the given city and date range.")]:
