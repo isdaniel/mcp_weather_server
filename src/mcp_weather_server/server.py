@@ -1,5 +1,6 @@
 import httpx
 import logging
+import json
 from typing import Annotated, List
 from mcp.server.fastmcp import FastMCP
 from pydantic import BaseModel, Field
@@ -119,7 +120,7 @@ async def get_current_weather(city: Annotated[str ,Field(description="The name o
             return f"API invoke error: {str(e)}"
 
 @mcp.tool()
-async def get_weather_byDateTimeRange(
+async def get_weather_bydateTimeRange(
     city: Annotated[str, Field(description="The name of the city to fetch weather information for, PLEASE NOTE English name only, if the parameter city isn't English please translate to English before invoking this function.")],
     start_date: Annotated[str, Field(description="Start date in format YYYY-MM-DD, please follow ISO 8601 format")],
     end_date: Annotated[str, Field(description="End date in format YYYY-MM-DD , please follow ISO 8601 format")]
@@ -138,7 +139,7 @@ async def get_weather_byDateTimeRange(
             url = (
                 f"https://api.open-meteo.com/v1/forecast"
                 f"?latitude={latitude}&longitude={longitude}"
-                f"&hourly=temperature_2m,relative_humidity_2m,dew_point_2m"
+                f"&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,weather_code"
                 f"&timezone=GMT&start_date={start_date}&end_date={end_date}"
             )
             logger.info(f"api: {url}")
@@ -152,12 +153,35 @@ async def get_weather_byDateTimeRange(
             temperatures = data["hourly"]["temperature_2m"]
             humidities = data["hourly"]["relative_humidity_2m"]
             dew_points = data["hourly"]["dew_point_2m"]
+            weather_codes = data["hourly"]["weather_code"]
 
-            summary_lines = [f"Hourly weather data for {city} from {start_date} to {end_date}:\n"]
-            for time, temp, rh, dew in zip(times, temperatures, humidities, dew_points):
-                summary_lines.append(f"{time} - Temp: {temp}°C, Humidity: {rh}%, Dew Point: {dew}°C")
+            weather_data = []
+            for time, temp, rh, dew,weather_code in zip(times, temperatures, humidities, dew_points,weather_codes):
+                weather_data.append({
+                    "time": time,
+                    "temperature_c": temp,
+                    "humidity_percent": rh,
+                    "dew_point_c": dew,
+                    "weather_description" : weather_descriptions.get(weather_code, "Unknown weather code")
+                })
 
-            return "\n".join(summary_lines)
+            data_result = {
+                "city": city,
+                "start_date": start_date,
+                "end_date": end_date,
+                "weather": weather_data
+            }
+
+            return f"""
+Please analyze the above JSON weather forecast information and generate a report for me. Please note that the content is provided
+
+city: city name
+start_date: search weather start time
+end_date: search weather end time
+weather: weather data.
+
+{json.dumps(data_result)}
+        """
 
         except Exception as e:
             logger.exception(f"API invoke error: {str(e)}")

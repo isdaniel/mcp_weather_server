@@ -1,2 +1,3 @@
 httpx
 mcp
+python-dateutil
