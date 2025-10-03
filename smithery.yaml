@@ -1,8 +1,9 @@
-runtime: python
+runtime: container
 
 startCommand:
   type: stdio
   configSchema:
     type: object
-  commandFunction: |
-    config => ({ command: "uv", args: ["run", "mcp_weather_server"] })
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
