@@ -1,9 +1,8 @@
+runtime: python
+
 startCommand:
   type: stdio
   configSchema:
-    # JSON Schema defining the configuration options for the MCP.
     type: object
-  commandFunction:
-    # A function that produces the CLI command to start the MCP on stdio.
-    |-
-    config => ({ command: 'uv', args: ['run', 'mcp_weather_server'] })
+  commandFunction: |
+    config => ({ command: "uv", args: ["run", "mcp_weather_server"] })
