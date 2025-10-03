@@ -1,12 +1,8 @@
-runtime: container
+runtime: python
 
 startCommand:
-  type: stdio
+  type: sse
   configSchema:
     type: object
   commandFunction: |
-    config => ({ command: "uv", args: ["run", "mcp_weather_server"] })
-
-build:
-  dockerfile: "Dockerfile"
-  dockerBuildPath: "."
+    config => ({ command: "uv", args: ["run", "mcp_weather_server", "--mode", "sse", "--host", "localhost", "--port", "3000"] })
