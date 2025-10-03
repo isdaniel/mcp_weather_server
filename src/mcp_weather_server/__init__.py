@@ -1,8 +1,8 @@
-from . import server
+from .server import main as async_main
 import asyncio
 
 def main():
-    """Main entry point for the package."""
-    asyncio.run(server.main())
+    """Synchronous entry point for the package."""
+    asyncio.run(async_main())
 
-__all__ = ['main', 'server']
+__all__ = ['main', 'async_main']

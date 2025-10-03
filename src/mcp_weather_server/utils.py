@@ -17,13 +17,13 @@ def get_zoneinfo(timezone_name: str) -> ZoneInfo:
     except Exception as e:
         raise McpError(f"Invalid timezone: {str(e)}")
 
-def format_get_weather_bytime(data_result) -> str :
+def format_get_weather_bytime(data_result) -> str:
     return f"""
 Please analyze the above JSON weather forecast information and generate a report for me. Please note that the content is provided
 city: city name
 start_date: search weather start time
 end_date: search weather end time
-weather: weather data.
+weather_data: weather data.
 {json.dumps(data_result)}
         """
 
