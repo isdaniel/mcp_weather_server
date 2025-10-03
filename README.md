@@ -64,20 +64,39 @@ pip install mcp_weather_server starlette uvicorn
 
 ## Server Modes
 
-This MCP server can run in two modes:
+This MCP server supports both **stdio** and **SSE** modes in a single unified server:
 
 ### 1. Standard MCP Mode (Default)
 The standard mode communicates via stdio and is compatible with MCP clients like Claude Desktop.
 
 ```bash
+# Default mode (stdio)
 python -m mcp_weather_server
+
+# Explicitly specify stdio mode
+python -m mcp_weather_server.server --mode stdio
 ```
 
 ### 2. HTTP SSE Mode (Web Applications)
 The SSE mode runs an HTTP server that provides MCP functionality via Server-Sent Events, making it accessible to web applications.
 
 ```bash
-python src/mcp_weather_server/server-see.py --host 0.0.0.0 --port 8080
+# Start SSE server on default host/port (0.0.0.0:8080)
+python -m mcp_weather_server.server --mode sse
+
+# Specify custom host and port
+python -m mcp_weather_server.server --mode sse --host localhost --port 3000
+
+# Enable debug mode
+python -m mcp_weather_server.server --mode sse --debug
+```
+
+**Command Line Options:**
+```
+--mode {stdio,sse}  Server mode: stdio (default) or sse
+--host HOST         Host to bind to (SSE mode only, default: 0.0.0.0)
+--port PORT         Port to listen on (SSE mode only, default: 8080)
+--debug             Enable debug mode
 ```
 
 **SSE Endpoints:**
@@ -112,7 +131,7 @@ This server provides several tools for weather and time-related operations:
 ### Available Tools
 
 1. **`get_current_weather`** - Get current weather for a city
-2. **`get_weather_by_datetime_range`** - Get weather data for a date range  
+2. **`get_weather_by_datetime_range`** - Get weather data for a date range
 3. **`get_current_datetime`** - Get current time in any timezone
 4. **`get_timezone_info`** - Get timezone information
 5. **`convert_time`** - Convert time between timezones
@@ -132,7 +151,7 @@ Retrieves the current weather information for a given city.
 ```json
 {
   "city": "Taipei",
-  "weather": "Partly cloudy", 
+  "weather": "Partly cloudy",
   "temperature_celsius": 25
 }
 ```
@@ -153,7 +172,7 @@ Retrieves weather information for a specified city between start and end dates.
 [
   {
     "date": "2024-01-01",
-    "day_of_week": "Monday", 
+    "day_of_week": "Monday",
     "city": "London",
     "weather": "Light rain",
     "temperature_celsius": 8
@@ -257,12 +276,12 @@ When running in SSE mode, you can integrate the weather server with web applicat
     <script>
         // Connect to SSE endpoint
         const eventSource = new EventSource('http://localhost:8080/sse');
-        
+
         eventSource.onmessage = function(event) {
             const data = JSON.parse(event.data);
             document.getElementById('weather-data').innerHTML = JSON.stringify(data, null, 2);
         };
-        
+
         // Function to get weather
         async function getWeather(city) {
             const response = await fetch('http://localhost:8080/messages/', {
@@ -279,7 +298,7 @@ When running in SSE mode, you can integrate the weather server with web applicat
                 })
             });
         }
-        
+
         // Example: Get weather for Tokyo
         getWeather('Tokyo');
     </script>
@@ -342,16 +361,6 @@ To add new weather or time-related tools:
 3. Implement the required methods (`get_name`, `get_description`, `call`)
 4. Register the tool in `server.py`
 
-### Testing
-
-```bash
-# Run tests
-python -m pytest tests/
-
-# Run specific test
-python -m pytest tests/test_mcp_weather_server.py
-```
-
 ## Dependencies
 
 ### Core Dependencies
@@ -359,7 +368,7 @@ python -m pytest tests/test_mcp_weather_server.py
 - `httpx>=0.28.1` - HTTP client for API requests
 - `python-dateutil>=2.8.2` - Date/time parsing utilities
 
-### SSE Server Dependencies  
+### SSE Server Dependencies
 - `starlette` - ASGI web framework
 - `uvicorn` - ASGI server
 
