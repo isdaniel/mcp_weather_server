@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import json
 from typing import List
 from zoneinfo import ZoneInfo
+from mcp.types import ErrorData
 from mcp import McpError
 from pydantic import BaseModel
 from dateutil import parser
@@ -15,7 +16,8 @@ def get_zoneinfo(timezone_name: str) -> ZoneInfo:
     try:
         return ZoneInfo(timezone_name)
     except Exception as e:
-        raise McpError(f"Invalid timezone: {str(e)}")
+        error_data = ErrorData(code=-1, message=f"Invalid timezone: {str(e)}")
+        raise McpError(error_data)
 
 def format_get_weather_bytime(data_result) -> str:
     return f"""

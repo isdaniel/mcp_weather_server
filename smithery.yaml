@@ -1,8 +1,8 @@
 runtime: python
 
 startCommand:
-  type: sse
+  type: stdio
   configSchema:
     type: object
   commandFunction: |
-    config => ({ command: "uv", args: ["run", "mcp_weather_server", "--mode", "sse", "--host", "localhost", "--port", "3000"] })
+    config => ({ command: "uv", args: ["run", "mcp_weather_server"] })
