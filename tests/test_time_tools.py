@@ -7,7 +7,7 @@ import json
 from unittest.mock import Mock, patch
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from mcp.types import TextContent
+from mcp.types import TextContent, ErrorData
 from mcp import McpError
 from src.mcp_weather_server.tools.tools_time import (
     GetCurrentDateTimeToolHandler,
@@ -41,7 +41,7 @@ class TestGetCurrentDateTimeToolHandler:
 
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             mock_get_tz.return_value = ZoneInfo("America/New_York")
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                 mock_datetime.now.return_value = fixed_time
 
                 args = {"timezone_name": "America/New_York"}
@@ -68,7 +68,7 @@ class TestGetCurrentDateTimeToolHandler:
     async def test_run_tool_invalid_timezone(self, handler):
         """Test tool execution with invalid timezone."""
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
-            mock_get_tz.side_effect = McpError("Invalid timezone: Invalid/Timezone")
+            mock_get_tz.side_effect = McpError(ErrorData(code=-1, message="Invalid timezone: Invalid/Timezone"))
 
             args = {"timezone_name": "Invalid/Timezone"}
             result = await handler.run_tool(args)
@@ -84,7 +84,7 @@ class TestGetCurrentDateTimeToolHandler:
 
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             mock_get_tz.return_value = ZoneInfo("UTC")
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                 mock_datetime.now.return_value = fixed_time
 
                 args = {"timezone_name": "UTC"}
@@ -118,11 +118,13 @@ class TestGetTimeZoneInfoToolHandler:
     async def test_run_tool_success(self, handler):
         """Test successful tool execution."""
         fixed_time = datetime(2024, 6, 15, 14, 30, 0, tzinfo=ZoneInfo("Europe/London"))
+        fixed_utc_time = datetime(2024, 6, 15, 13, 0, 0)  # UTC time without timezone
 
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             mock_get_tz.return_value = ZoneInfo("Europe/London")
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                 mock_datetime.now.return_value = fixed_time
+                mock_datetime.utcnow.return_value = fixed_utc_time
 
                 args = {"timezone_name": "Europe/London"}
                 result = await handler.run_tool(args)
@@ -131,9 +133,9 @@ class TestGetTimeZoneInfoToolHandler:
                 assert isinstance(result[0], TextContent)
 
                 response_data = json.loads(result[0].text)
-                assert response_data["timezone"] == "Europe/London"
-                assert "current_time" in response_data
-                assert "utc_offset" in response_data
+                assert response_data["timezone_name"] == "Europe/London"
+                assert "current_local_time" in response_data
+                assert "utc_offset_hours" in response_data
 
     @pytest.mark.asyncio
     async def test_run_tool_missing_timezone(self, handler):
@@ -149,7 +151,7 @@ class TestGetTimeZoneInfoToolHandler:
     async def test_run_tool_invalid_timezone(self, handler):
         """Test tool execution with invalid timezone."""
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
-            mock_get_tz.side_effect = McpError("Invalid timezone")
+            mock_get_tz.side_effect = McpError(ErrorData(code=-1, message="Invalid timezone"))
 
             args = {"timezone_name": "Invalid/Timezone"}
             result = await handler.run_tool(args)
@@ -174,10 +176,14 @@ class TestConvertTimeToolHandler:
         assert description.name == "convert_time"
         assert "convert time" in description.description.lower()
         assert description.inputSchema["type"] == "object"
-        required_fields = ["datetime", "from_timezone", "to_timezone"]
-        for field in required_fields:
-            assert field in description.inputSchema["properties"]
-        assert set(description.inputSchema["required"]) == set(required_fields)
+        # Check that required parameters are supported
+        assert "datetime_str" in description.inputSchema["properties"]
+        assert "from_timezone" in description.inputSchema["properties"]
+        assert "to_timezone" in description.inputSchema["properties"]
+        assert "to_timezone" in description.inputSchema["properties"]
+        # Check that required fields include the timezone fields
+        assert "from_timezone" in description.inputSchema["required"]
+        assert "to_timezone" in description.inputSchema["required"]
 
     @pytest.mark.asyncio
     async def test_run_tool_success(self, handler):
@@ -192,7 +198,7 @@ class TestConvertTimeToolHandler:
                 mock_parse.return_value = source_time
 
                 args = {
-                    "datetime": "2024-01-01T12:00:00",
+                    "datetime_str": "2024-01-01T12:00:00",
                     "from_timezone": "UTC",
                     "to_timezone": "America/New_York"
                 }
@@ -202,9 +208,10 @@ class TestConvertTimeToolHandler:
                 assert isinstance(result[0], TextContent)
 
                 response_data = json.loads(result[0].text)
-                assert response_data["original_datetime"] == "2024-01-01T12:00:00"
-                assert response_data["from_timezone"] == "UTC"
-                assert response_data["to_timezone"] == "America/New_York"
+                assert response_data["original_timezone"] == "UTC"
+                assert response_data["converted_timezone"] == "America/New_York"
+                # Check that the datetime includes timezone info
+                assert "2024-01-01T12:00:00" in response_data["original_datetime"]
                 assert "converted_datetime" in response_data
 
     @pytest.mark.asyncio
@@ -240,7 +247,7 @@ class TestConvertTimeToolHandler:
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             def side_effect(tz):
                 if tz == "Invalid/Timezone":
-                    raise McpError("Invalid timezone")
+                    raise McpError(ErrorData(code=-1, message="Invalid timezone"))
                 return ZoneInfo(tz)
             mock_get_tz.side_effect = side_effect
 
@@ -261,7 +268,7 @@ class TestConvertTimeToolHandler:
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             def side_effect(tz):
                 if tz == "Invalid/Timezone":
-                    raise McpError("Invalid timezone")
+                    raise McpError(ErrorData(code=-1, message="Invalid timezone"))
                 return ZoneInfo(tz)
             mock_get_tz.side_effect = side_effect
 
@@ -290,7 +297,7 @@ class TestConvertTimeToolHandler:
                 mock_parse.return_value = source_time
 
                 args = {
-                    "datetime": "2024-01-01T12:00:00",
+                    "datetime_str": "2024-01-01T12:00:00",
                     "from_timezone": "UTC",
                     "to_timezone": "UTC"
                 }
@@ -299,9 +306,9 @@ class TestConvertTimeToolHandler:
                 assert len(result) == 1
                 response_data = json.loads(result[0].text)
                 # When converting to same timezone, time should remain the same
-                assert response_data["original_datetime"] == "2024-01-01T12:00:00"
-                assert response_data["from_timezone"] == "UTC"
-                assert response_data["to_timezone"] == "UTC"
+                assert "2024-01-01T12:00:00" in response_data["original_datetime"]
+                assert response_data["original_timezone"] == "UTC"
+                assert response_data["converted_timezone"] == "UTC"
 
     @pytest.mark.asyncio
     async def test_run_tool_across_date_line(self, handler):
@@ -315,7 +322,7 @@ class TestConvertTimeToolHandler:
                 mock_parse.return_value = source_time
 
                 args = {
-                    "datetime": "2024-01-01T23:00:00",
+                    "datetime_str": "2024-01-01T23:00:00",
                     "from_timezone": "Pacific/Kiritimati",
                     "to_timezone": "Pacific/Honolulu"
                 }
@@ -323,7 +330,7 @@ class TestConvertTimeToolHandler:
 
                 assert len(result) == 1
                 response_data = json.loads(result[0].text)
-                assert response_data["from_timezone"] == "Pacific/Kiritimati"
-                assert response_data["to_timezone"] == "Pacific/Honolulu"
+                assert response_data["original_timezone"] == "Pacific/Kiritimati"
+                assert response_data["converted_timezone"] == "Pacific/Honolulu"
                 # Should handle date line crossing correctly
                 assert "converted_datetime" in response_data

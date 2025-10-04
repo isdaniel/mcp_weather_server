@@ -35,8 +35,9 @@ class TestGetCurrentWeatherToolHandler:
     async def test_run_tool_success(self, handler, sample_current_weather_data):
         """Test successful tool execution."""
         # Mock the weather service
-        mock_service = AsyncMock()
-        mock_service.get_current_weather.return_value = sample_current_weather_data
+        from unittest.mock import Mock
+        mock_service = Mock()
+        mock_service.get_current_weather = AsyncMock(return_value=sample_current_weather_data)
         mock_service.format_current_weather_response.return_value = "Formatted weather response"
         handler.weather_service = mock_service
 
@@ -111,8 +112,9 @@ class TestGetWeatherByDateRangeToolHandler:
     @pytest.mark.asyncio
     async def test_run_tool_success(self, handler, sample_weather_range_data):
         """Test successful tool execution."""
-        mock_service = AsyncMock()
-        mock_service.get_weather_by_date_range.return_value = sample_weather_range_data
+        from unittest.mock import Mock
+        mock_service = Mock()
+        mock_service.get_weather_by_date_range = AsyncMock(return_value=sample_weather_range_data)
         mock_service.format_weather_range_response.return_value = "Formatted range response"
         handler.weather_service = mock_service
 
@@ -222,7 +224,10 @@ class TestGetWeatherDetailsToolHandler:
 
         assert len(result) == 1
         assert isinstance(result[0], TextContent)
-        assert "Error: Service error" in result[0].text
+        # Check that the error is properly formatted as JSON
+        response_data = json.loads(result[0].text)
+        assert "error" in response_data
+        assert "Service error" in response_data["error"]
 
     @pytest.mark.asyncio
     async def test_run_tool_json_serialization_error(self, handler):

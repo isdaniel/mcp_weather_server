@@ -124,7 +124,7 @@ class TestPerformance:
 
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             mock_get_tz.return_value = ZoneInfo("UTC")
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                 mock_datetime.now.return_value = fixed_time
 
                 start_time = time.time()
@@ -293,7 +293,7 @@ class TestLoadTesting:
 
             with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
                 mock_get_tz.return_value = ZoneInfo("UTC")
-                with patch('datetime.datetime') as mock_datetime:
+                with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                     mock_datetime.now.return_value = fixed_time
                     with patch('src.mcp_weather_server.utils.get_closest_utc_index', return_value=0):
 

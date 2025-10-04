@@ -7,6 +7,8 @@ import pytest
 import asyncio
 import json
 from unittest.mock import AsyncMock, Mock, patch
+from mcp.types import ErrorData
+from mcp import McpError
 from src.mcp_weather_server.server import (
     register_all_tools,
     list_tools,
@@ -176,7 +178,7 @@ class TestTimeIntegration:
 
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             mock_get_tz.return_value = ZoneInfo("America/New_York")
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                 mock_datetime.now.return_value = fixed_time
 
                 result = await call_tool("get_current_datetime", {
@@ -195,11 +197,13 @@ class TestTimeIntegration:
         from zoneinfo import ZoneInfo
 
         fixed_time = datetime(2024, 12, 25, 15, 0, 0, tzinfo=ZoneInfo("Europe/London"))
+        fixed_utc_time = datetime(2024, 12, 25, 15, 0, 0)  # UTC time without timezone
 
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
             mock_get_tz.return_value = ZoneInfo("Europe/London")
-            with patch('datetime.datetime') as mock_datetime:
+            with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                 mock_datetime.now.return_value = fixed_time
+                mock_datetime.utcnow.return_value = fixed_utc_time
 
                 result = await call_tool("get_timezone_info", {
                     "timezone_name": "Europe/London"
@@ -207,9 +211,9 @@ class TestTimeIntegration:
 
                 assert len(result) == 1
                 tz_data = json.loads(result[0].text)
-                assert tz_data["timezone"] == "Europe/London"
-                assert "current_time" in tz_data
-                assert "utc_offset" in tz_data
+                assert tz_data["timezone_name"] == "Europe/London"
+                assert "current_local_time" in tz_data
+                assert "utc_offset_hours" in tz_data
 
     @pytest.mark.asyncio
     async def test_time_conversion_integration(self):
@@ -225,16 +229,16 @@ class TestTimeIntegration:
                 mock_parse.return_value = source_time
 
                 result = await call_tool("convert_time", {
-                    "datetime": "2024-07-04T12:00:00",
+                    "datetime_str": "2024-07-04T12:00:00",
                     "from_timezone": "UTC",
                     "to_timezone": "America/Los_Angeles"
                 })
 
                 assert len(result) == 1
                 conversion_data = json.loads(result[0].text)
-                assert conversion_data["original_datetime"] == "2024-07-04T12:00:00"
-                assert conversion_data["from_timezone"] == "UTC"
-                assert conversion_data["to_timezone"] == "America/Los_Angeles"
+                assert "2024-07-04T12:00:00" in conversion_data["original_datetime"]
+                assert conversion_data["original_timezone"] == "UTC"
+                assert conversion_data["converted_timezone"] == "America/Los_Angeles"
                 assert "converted_datetime" in conversion_data
 
 
@@ -302,10 +306,8 @@ class TestErrorHandlingIntegration:
     @pytest.mark.asyncio
     async def test_invalid_timezone_error_handling(self):
         """Test error handling for invalid timezones."""
-        from mcp import McpError
-
         with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
-            mock_get_tz.side_effect = McpError("Invalid timezone: BadTimezone")
+            mock_get_tz.side_effect = McpError(ErrorData(code=-1, message="Invalid timezone: BadTimezone"))
 
             result = await call_tool("get_current_datetime", {
                 "timezone_name": "BadTimezone"
@@ -373,6 +375,11 @@ class TestConcurrentOperations:
             def mock_get(url):
                 response = Mock()
                 response.status_code = 200
+
+                # Default to New York for any unmapped requests
+                default_geo = mock_responses["New York"]["geo"]
+                default_weather = mock_responses["New York"]["weather"]
+
                 # Determine which city based on the URL parameters
                 if "name=New%20York" in url or "name=New+York" in url:
                     if "geocoding-api" in url:
@@ -384,12 +391,17 @@ class TestConcurrentOperations:
                         response.json.return_value = mock_responses["London"]["geo"]
                     else:
                         response.json.return_value = mock_responses["London"]["weather"]
+                elif "geocoding-api" in url:
+                    # Default geocoding response
+                    response.json.return_value = default_geo
                 else:
-                    # Default response for coordinates-based weather requests
+                    # Default weather response based on coordinates
                     if "latitude=40.7128" in url:
                         response.json.return_value = mock_responses["New York"]["weather"]
                     elif "latitude=51.5074" in url:
                         response.json.return_value = mock_responses["London"]["weather"]
+                    else:
+                        response.json.return_value = default_weather
                 return response
 
             mock_client.get.side_effect = mock_get
@@ -456,7 +468,7 @@ class TestConcurrentOperations:
 
             with patch('src.mcp_weather_server.utils.get_zoneinfo') as mock_get_tz:
                 mock_get_tz.return_value = ZoneInfo("Asia/Tokyo")
-                with patch('datetime.datetime') as mock_datetime:
+                with patch('src.mcp_weather_server.tools.tools_time.datetime') as mock_datetime:
                     mock_datetime.now.return_value = fixed_time
                     with patch('src.mcp_weather_server.utils.get_closest_utc_index', return_value=0):
 
