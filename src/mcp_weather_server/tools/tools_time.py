@@ -64,7 +64,7 @@ class GetCurrentDateTimeToolHandler(ToolHandler):
             return [
                 TextContent(
                     type="text",
-                    text=json.dumps(time_result.model_dump(), indent=2)
+                    text=json.dumps(time_result.dict(), indent=2)
                 )
             ]
             
