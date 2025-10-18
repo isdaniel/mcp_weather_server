@@ -1,8 +1,16 @@
-runtime: python
+runtime: container
 
 startCommand:
-  type: stdio
+  type: http
   configSchema:
     type: object
-  commandFunction: |
-    config => ({ command: "uv", args: ["run", "mcp_weather_server"] })
+    properties:
+      debug:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug logging"
+        default: false
+
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."

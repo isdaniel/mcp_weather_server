@@ -25,6 +25,7 @@ try:
     from starlette.applications import Starlette
     from starlette.requests import Request
     from starlette.routing import Mount, Route
+    from starlette.middleware.cors import CORSMiddleware
     import uvicorn
     SSE_AVAILABLE = True
 except ImportError:
@@ -105,6 +106,7 @@ def register_all_tools() -> None:
 def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
     """
     Create a Starlette application that can serve the provided mcp server with SSE.
+    Implements the MCP Streamable HTTP protocol with /mcp endpoint and CORS support.
 
     Args:
         mcp_server: The MCP server instance
@@ -118,7 +120,8 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
 
     sse = SseServerTransport("/messages/")
 
-    async def handle_sse(request: Request) -> None:
+    async def handle_mcp(request: Request) -> None:
+        """Handle requests to the /mcp endpoint"""
         async with sse.connect_sse(
                 request.scope,
                 request.receive,
@@ -130,13 +133,27 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
                 mcp_server.create_initialization_options(),
             )
 
-    return Starlette(
+    app = Starlette(
         debug=debug,
         routes=[
-            Route("/sse", endpoint=handle_sse),
+            Route("/mcp", endpoint=handle_mcp),
+            Route("/sse", endpoint=handle_mcp),
             Mount("/messages/", app=sse.handle_post_message),
         ],
     )
+
+    # Add CORS middleware for Smithery deployment
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Allow all origins for MCP clients
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_headers=["*"],
+        expose_headers=["mcp-session-id", "mcp-protocol-version"],
+        max_age=86400,
+    )
+
+    return app
 
 
 @app.list_tools()
@@ -207,6 +224,7 @@ async def main():
     """
     Main entry point for the MCP weather server.
     Supports both stdio and SSE modes based on command line arguments.
+    For Smithery deployments, reads PORT from environment variable.
     """
     # Parse command line arguments
     parser = argparse.ArgumentParser(description='MCP Weather Server - supports stdio and SSE modes')
@@ -214,12 +232,17 @@ async def main():
                         help='Server mode: stdio (default) or sse')
     parser.add_argument('--host', default='0.0.0.0',
                         help='Host to bind to (SSE mode only, default: 0.0.0.0)')
-    parser.add_argument('--port', type=int, default=8080,
-                        help='Port to listen on (SSE mode only, default: 8080)')
+    parser.add_argument('--port', type=int, default=None,
+                        help='Port to listen on (SSE mode only, default: from PORT env var or 8080)')
     parser.add_argument('--debug', action='store_true',
                         help='Enable debug mode')
 
     args = parser.parse_args()
+
+    # Get port from environment variable (Smithery sets this to 8081)
+    # or use command line argument, or default to 8080
+    import os
+    port = args.port if args.port is not None else int(os.environ.get("PORT", 8080))
 
     try:
         # Register all tools
@@ -230,7 +253,7 @@ async def main():
         logger.info(f"Registered tools: {list(tool_handlers.keys())}")
 
         # Run the server in the specified mode
-        await run_server(args.mode, args.host, args.port, args.debug)
+        await run_server(args.mode, args.host, port, args.debug)
 
     except Exception as e:
         logger.exception(f"Failed to start server: {str(e)}")
