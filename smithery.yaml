@@ -12,5 +12,5 @@ startCommand:
         default: false
 
 build:
-  dockerfile: "Dockerfile"
+  dockerfile: "Dockerfile.streamable-http"
   dockerBuildPath: "."
