@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp_weather_server"
-version = "0.4.0"
+version = "0.4.1"
 authors = [
   { name = "danielshih", email = "dog830228@gmail.com" },
 ]
@@ -18,7 +18,8 @@ dependencies = [
   "python-dotenv>=1.1.1",
   "python-dateutil>=2.8.2",
   "starlette>=0.48.0",
-  "uvicorn>=0.38.0"
+  "uvicorn>=0.38.0",
+  "tzdata>=2025.2",
 ]
 
 [tool.hatch.build.targets.wheel]

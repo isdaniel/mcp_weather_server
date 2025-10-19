@@ -95,6 +95,73 @@ class TestGetCurrentDateTimeToolHandler:
                 assert response_data["timezone"] == "UTC"
                 assert "2024-01-01T12:00:00" in response_data["datetime"]
 
+    @pytest.mark.asyncio
+    async def test_run_tool_real_timezone_no_mocks(self, handler):
+        """Integration test with real timezones (no mocks) to catch tzdata issues."""
+        # This test specifically targets the Windows tzdata issue
+        # by using real timezone functionality without mocks
+
+        test_cases = [
+            "UTC",                # Failed in original issue
+            "America/New_York",   # Original failing case
+        ]
+
+        for timezone_name in test_cases:
+            args = {"timezone_name": timezone_name}
+            result = await handler.run_tool(args)
+
+            # Should not get an error about timezone not found
+            assert len(result) == 1
+            assert isinstance(result[0], TextContent)
+
+            # Parse the result and verify it's not an error
+            result_text = result[0].text
+            assert "Error getting current time" not in result_text
+            assert "No time zone found with key" not in result_text
+            assert "ModuleNotFoundError: No module named 'tzdata'" not in result_text
+
+            # Should be valid JSON with timezone info
+            try:
+                response_data = json.loads(result_text)
+                assert response_data["timezone"] == timezone_name
+                assert "datetime" in response_data
+                # Verify datetime is in ISO format
+                assert "T" in response_data["datetime"]
+            except json.JSONDecodeError:
+                pytest.fail(f"Invalid JSON response for timezone {timezone_name}: {result_text}")
+
+    @pytest.mark.asyncio
+    async def test_run_tool_windows_specific_timezones(self, handler):
+        """Test timezones that commonly fail on Windows without tzdata."""
+        # These timezones frequently cause issues on Windows systems
+        # without proper tzdata installation
+        windows_problematic_timezones = [
+            "America/New_York",
+            "America/Los_Angeles",
+            "Europe/London",
+            "Asia/Tokyo",
+            "UTC"
+        ]
+
+        for timezone_name in windows_problematic_timezones:
+            args = {"timezone_name": timezone_name}
+            result = await handler.run_tool(args)
+
+            assert len(result) == 1
+            result_text = result[0].text
+
+            # Should not contain tzdata error messages
+            tzdata_error_indicators = [
+                "No module named 'tzdata'",
+                "ZoneInfoNotFoundError",
+                "No time zone found with key",
+                "Invalid timezone",
+            ]
+
+            for error_indicator in tzdata_error_indicators:
+                assert error_indicator not in result_text, \
+                    f"Timezone {timezone_name} failed with tzdata error: {result_text}"
+
 
 class TestGetTimeZoneInfoToolHandler:
     """Test cases for GetTimeZoneInfoToolHandler."""
@@ -334,3 +401,61 @@ class TestConvertTimeToolHandler:
                 assert response_data["converted_timezone"] == "Pacific/Honolulu"
                 # Should handle date line crossing correctly
                 assert "converted_datetime" in response_data
+
+    @pytest.mark.asyncio
+    async def test_run_tool_real_timezone_conversion_no_mocks(self, handler):
+        """Integration test for timezone conversion without mocks to catch tzdata issues."""
+        # Test the exact conversion that was failing in Windows
+        args = {
+            "datetime_str": "2024-10-19T12:00:00",
+            "from_timezone": "UTC",
+            "to_timezone": "America/New_York"
+        }
+
+        result = await handler.run_tool(args)
+
+        assert len(result) == 1
+        result_text = result[0].text
+
+        # Should not contain tzdata-related errors
+        assert "No module named 'tzdata'" not in result_text
+        assert "ZoneInfoNotFoundError" not in result_text
+        assert "No time zone found with key" not in result_text
+        assert "Error converting time" not in result_text
+
+        # Should be valid JSON with conversion data
+        try:
+            response_data = json.loads(result_text)
+            assert response_data["original_timezone"] == "UTC"
+            assert response_data["converted_timezone"] == "America/New_York"
+            assert "original_datetime" in response_data
+            assert "converted_datetime" in response_data
+            assert "time_difference_hours" in response_data
+        except json.JSONDecodeError:
+            pytest.fail(f"Invalid JSON response: {result_text}")
+
+    @pytest.mark.asyncio
+    async def test_run_tool_now_keyword_real_timezone(self, handler):
+        """Test 'now' keyword with real timezone (integration test)."""
+        args = {
+            "datetime_str": "now",
+            "from_timezone": "America/New_York",
+            "to_timezone": "UTC"
+        }
+
+        result = await handler.run_tool(args)
+
+        assert len(result) == 1
+        result_text = result[0].text
+
+        # Should not have tzdata errors
+        assert "No module named 'tzdata'" not in result_text
+        assert "ZoneInfoNotFoundError" not in result_text
+
+        # Should be valid conversion result
+        try:
+            response_data = json.loads(result_text)
+            assert response_data["original_timezone"] == "America/New_York"
+            assert response_data["converted_timezone"] == "UTC"
+        except json.JSONDecodeError:
+            pytest.fail(f"Invalid JSON response for 'now' conversion: {result_text}")
