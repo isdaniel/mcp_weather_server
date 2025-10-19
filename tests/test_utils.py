@@ -71,6 +71,72 @@ class TestGetZoneinfo:
         with pytest.raises(McpError, match="Invalid timezone"):
             get_zoneinfo(None)
 
+    def test_get_zoneinfo_common_timezones_real(self):
+        """Test get_zoneinfo with common timezones without mocks (integration test)."""
+        # Test the exact timezones that were causing issues in Windows
+        common_timezones = [
+            "UTC",
+            "America/New_York",  # The exact failing case from the original issue
+            "America/Los_Angeles",
+            "Europe/London",
+            "Europe/Paris",
+            "Asia/Tokyo",
+        ]
+
+        for timezone_name in common_timezones:
+            tz = get_zoneinfo(timezone_name)
+            assert isinstance(tz, ZoneInfo)
+            assert str(tz) == timezone_name
+
+            # Verify we can actually use the timezone
+            current_time = datetime.now(tz)
+            assert current_time.tzinfo is not None
+
+            # Verify the timezone can be used for time calculations
+            iso_string = current_time.isoformat()
+            assert len(iso_string) > 0
+
+    def test_get_zoneinfo_windows_problematic_cases(self):
+        """Test cases that specifically failed on Windows without tzdata."""
+        # These are the exact cases from the original error logs
+        problematic_cases = [
+            "America/New_York",  # Original failing case
+            "UTC",               # Also failed in the logs
+        ]
+
+        for timezone_name in problematic_cases:
+            # This should NOT raise ZoneInfoNotFoundError if tzdata is properly installed
+            try:
+                tz = get_zoneinfo(timezone_name)
+                assert isinstance(tz, ZoneInfo)
+
+                # Test that we can create datetime objects with this timezone
+                test_time = datetime(2024, 10, 19, 12, 0, 0, tzinfo=tz)
+                assert test_time.tzinfo == tz
+
+            except Exception as e:
+                pytest.fail(f"Failed to load timezone {timezone_name} - this suggests tzdata is not properly installed: {e}")
+
+    def test_get_zoneinfo_dst_transitions(self):
+        """Test timezone handling across DST transitions."""
+        ny_tz = get_zoneinfo("America/New_York")
+
+        # Test dates around DST transitions
+        # Spring forward (March)
+        spring_before_dst = datetime(2024, 3, 9, 12, 0, 0, tzinfo=ny_tz)
+        spring_after_dst = datetime(2024, 3, 11, 12, 0, 0, tzinfo=ny_tz)
+
+        # Fall back (November)
+        fall_before_dst = datetime(2024, 11, 2, 12, 0, 0, tzinfo=ny_tz)
+        fall_after_dst = datetime(2024, 11, 4, 12, 0, 0, tzinfo=ny_tz)
+
+        # All should work without errors
+        for dt in [spring_before_dst, spring_after_dst, fall_before_dst, fall_after_dst]:
+            assert dt.tzinfo == ny_tz
+            # Should be able to get UTC offset
+            offset = dt.utcoffset()
+            assert offset is not None
+
 
 class TestFormatGetWeatherBytime:
     """Test cases for format_get_weather_bytime function."""
