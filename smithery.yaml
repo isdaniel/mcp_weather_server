@@ -1,14 +1,16 @@
-runtime: python
+runtime: container
 
 startCommand:
   type: http
-  command: python
-  args:
-    - "-m"
-    - "mcp_weather_server"
-    - "--mode"
-    - "streamable-http"
-    - "--host"
-    - "0.0.0.0"
-    - "--port"
-    - "8081"
+  configSchema:
+    type: object
+    properties:
+      debug:
+        type: boolean
+        title: "Debug Mode"
+        description: "Enable debug logging"
+        default: true
+
+build:
+  dockerfile: "Dockerfile.streamable-http"
+  dockerBuildPath: "."

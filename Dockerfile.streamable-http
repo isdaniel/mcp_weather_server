@@ -9,6 +9,8 @@ COPY . /app
 # Install dependencies and the package
 RUN (uv venv .venv) && (. .venv/bin/activate) && (uv pip install -e .)
 
+ENV TRANSPORT=http
+ENV PORT=8081
 EXPOSE 8081
 
 CMD ["uv", "run", "python", "-m", "mcp_weather_server", "--mode", "streamable-http", "--host", "0.0.0.0", "--port", "8081"]
