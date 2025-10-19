@@ -155,9 +155,10 @@ def create_streamable_http_app(mcp_server: Server, *, debug: bool = False, state
         stateless=stateless,
     )
 
-    async def handle_streamable_http(scope, receive, send) -> None:
-        """Handle Streamable HTTP requests to the /mcp endpoint"""
-        await session_manager.handle_request(scope, receive, send)
+    class StreamableHTTPRoute:
+        """ASGI app wrapper for the streamable HTTP handler"""
+        async def __call__(self, scope, receive, send):
+            await session_manager.handle_request(scope, receive, send)
 
     @contextlib.asynccontextmanager
     async def lifespan(app: Starlette) -> AsyncIterator[None]:
@@ -169,11 +170,11 @@ def create_streamable_http_app(mcp_server: Server, *, debug: bool = False, state
             finally:
                 logger.info("Streamable HTTP session manager shutting down...")
 
-    # Create Starlette app with a single endpoint, We mount the handler as an ASGI app, not as a route endpoint
+    # Create Starlette app with a single endpoint using Mount with no trailing slash handling
     starlette_app = Starlette(
         debug=debug,
         routes=[
-            Mount("/mcp", app=handle_streamable_http),
+            Route("/mcp", endpoint=StreamableHTTPRoute()),
         ],
         lifespan=lifespan,
     )
@@ -185,7 +186,7 @@ def create_streamable_http_app(mcp_server: Server, *, debug: bool = False, state
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
-        expose_headers=["mcp-session-id", "mcp-protocol-version", "content-type"],
+        expose_headers=["mcp-session-id", "mcp-protocol-version"],
         max_age=86400,
     )
 
