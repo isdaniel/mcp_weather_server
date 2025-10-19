@@ -185,7 +185,7 @@ def create_streamable_http_app(mcp_server: Server, *, debug: bool = False, state
         allow_credentials=True,
         allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["*"],
-        expose_headers=["mcp-session-id", "mcp-protocol-version"],
+        expose_headers=["mcp-session-id", "mcp-protocol-version", "content-type"],
         max_age=86400,
     )
 

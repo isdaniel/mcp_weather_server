@@ -1,16 +1,8 @@
 runtime: container
 
 startCommand:
-  type: http
-  configSchema:
-    type: object
-    properties:
-      debug:
-        type: boolean
-        title: "Debug Mode"
-        description: "Enable debug logging"
-        default: false
+  type: stdio
 
 build:
-  dockerfile: "Dockerfile.streamable-http"
+  dockerfile: "Dockerfile"
   dockerBuildPath: "."
