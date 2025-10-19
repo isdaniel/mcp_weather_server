@@ -25,6 +25,14 @@ A Model Context Protocol (MCP) server that provides weather information using th
 
 ## Installation
 
+### Installing via Smithery
+
+To install Weather MCP Server automatically via [Smithery](https://smithery.ai/server/@isdaniel/mcp_weather_server):
+
+```bash
+npx -y @smithery/cli install @isdaniel/mcp_weather_server
+```
+
 ### Standard Installation (for MCP clients like Claude Desktop)
 
 This package can be installed using pip:
