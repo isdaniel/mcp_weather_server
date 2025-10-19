@@ -8,7 +8,7 @@
 
 # Weather MCP Server
 
-A Model Context Protocol (MCP) server that provides weather information using the Open-Meteo API. This server supports both standard MCP communication and HTTP Server-Sent Events (SSE) for web-based integration.
+A Model Context Protocol (MCP) server that provides weather information using the Open-Meteo API. This server supports multiple transport modes: standard stdio, HTTP Server-Sent Events (SSE), and the new Streamable HTTP protocol for web-based integration.
 
 ## Features
 
@@ -17,8 +17,11 @@ A Model Context Protocol (MCP) server that provides weather information using th
 * Get current date/time in any timezone
 * Convert time between timezones
 * Get timezone information
-* HTTP SSE (Server-Sent Events) support for web applications
-* RESTful API endpoints via Starlette/FastAPI integration
+* Multiple transport modes:
+  * **stdio** - Standard MCP for desktop clients (Claude Desktop, etc.)
+  * **SSE** - Server-Sent Events for web applications
+  * **streamable-http** - Modern MCP Streamable HTTP protocol with stateful/stateless options
+* RESTful API endpoints via Starlette integration
 
 ## Installation
 
@@ -54,9 +57,9 @@ This server is designed to be installed manually by adding its configuration to 
 
 2. Save the `cline_mcp_settings.json` file.
 
-### SSE Server Installation (for web applications)
+### HTTP Server Installation (for web applications)
 
-For HTTP SSE support, you'll need additional dependencies:
+For HTTP SSE or Streamable HTTP support, you'll need additional dependencies:
 
 ```bash
 pip install mcp_weather_server starlette uvicorn
@@ -64,7 +67,18 @@ pip install mcp_weather_server starlette uvicorn
 
 ## Server Modes
 
-This MCP server supports both **stdio** and **SSE** modes in a single unified server:
+This MCP server supports **stdio**, **SSE**, and **streamable-http** modes in a single unified server:
+
+### Mode Comparison
+
+| Feature | stdio | SSE | streamable-http |
+|---------|-------|-----|-----------------|
+| **Use Case** | Desktop MCP clients | Web applications (legacy) | Web applications (modern) |
+| **Protocol** | Standard I/O streams | Server-Sent Events | MCP Streamable HTTP |
+| **Session Management** | N/A | Stateful | Stateful or Stateless |
+| **Endpoints** | N/A | `/sse`, `/messages/` | `/mcp` (single) |
+| **Best For** | Claude Desktop, Cline | Browser-based apps | Modern web apps, APIs |
+| **State Options** | N/A | Stateful only | Stateful or Stateless |
 
 ### 1. Standard MCP Mode (Default)
 The standard mode communicates via stdio and is compatible with MCP clients like Claude Desktop.
@@ -82,26 +96,53 @@ The SSE mode runs an HTTP server that provides MCP functionality via Server-Sent
 
 ```bash
 # Start SSE server on default host/port (0.0.0.0:8080)
-python -m mcp_weather_server.server --mode sse
+python -m mcp_weather_server --mode sse
 
 # Specify custom host and port
-python -m mcp_weather_server.server --mode sse --host localhost --port 3000
+python -m mcp_weather_server --mode sse --host localhost --port 3000
 
 # Enable debug mode
-python -m mcp_weather_server.server --mode sse --debug
-```
-
-**Command Line Options:**
-```
---mode {stdio,sse}  Server mode: stdio (default) or sse
---host HOST         Host to bind to (SSE mode only, default: 0.0.0.0)
---port PORT         Port to listen on (SSE mode only, default: 8080)
---debug             Enable debug mode
+python -m mcp_weather_server --mode sse --debug
 ```
 
 **SSE Endpoints:**
 - `GET /sse` - SSE endpoint for MCP communication
 - `POST /messages/` - Message endpoint for sending MCP requests
+
+### 3. Streamable HTTP Mode (Modern MCP Protocol)
+The streamable-http mode implements the new MCP Streamable HTTP protocol with a single `/mcp` endpoint. This mode supports both stateful (default) and stateless operations.
+
+```bash
+# Start streamable HTTP server on default host/port (0.0.0.0:8080)
+python -m mcp_weather_server --mode streamable-http
+
+# Specify custom host and port
+python -m mcp_weather_server --mode streamable-http --host localhost --port 3000
+
+# Enable stateless mode (creates fresh transport per request, no session tracking)
+python -m mcp_weather_server --mode streamable-http --stateless
+
+# Enable debug mode
+python -m mcp_weather_server --mode streamable-http --debug
+```
+
+**Streamable HTTP Features:**
+- **Stateful mode (default)**: Maintains session state across requests using session IDs
+- **Stateless mode**: Creates fresh transport per request with no session tracking
+- **Single endpoint**: All MCP communication happens through `/mcp`
+- **Modern protocol**: Implements the latest MCP Streamable HTTP specification
+
+**Streamable HTTP Endpoint:**
+- `POST /mcp` - Single endpoint for all MCP communication (initialize, tools/list, tools/call, etc.)
+
+**Command Line Options:**
+```
+--mode {stdio,sse,streamable-http}  Server mode: stdio (default), sse, or streamable-http
+--host HOST                          Host to bind to (HTTP modes only, default: 0.0.0.0)
+--port PORT                          Port to listen on (HTTP modes only, default: 8080)
+--stateless                          Run in stateless mode (streamable-http only)
+--debug                              Enable debug mode
+```
 
 **Example SSE Usage:**
 ```javascript
@@ -118,6 +159,31 @@ fetch('http://localhost:8080/messages/', {
     arguments: { city: 'Tokyo' }
   })
 });
+```
+
+**Example Streamable HTTP Usage:**
+```javascript
+// Initialize session and call tool using Streamable HTTP protocol
+async function callWeatherTool() {
+  const response = await fetch('http://localhost:8080/mcp', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      method: 'tools/call',
+      params: {
+        name: 'get_current_weather',
+        arguments: { city: 'Tokyo' }
+      },
+      id: 1
+    })
+  });
+
+  const result = await response.json();
+  console.log(result);
+}
 ```
 
 ## Configuration
@@ -306,6 +372,34 @@ When running in SSE mode, you can integrate the weather server with web applicat
 </html>
 ```
 
+## Docker Deployment
+
+The project includes Docker configurations for easy deployment:
+
+### SSE Mode Docker
+```bash
+# Build
+docker build -t mcp-weather-server:sse .
+
+# Run (port will be read from PORT env var, defaults to 8081)
+docker run -p 8081:8081 mcp-weather-server:sse
+
+# Run with custom port
+docker run -p 8080:8080 -e PORT=8080 mcp-weather-server:sse
+```
+
+### Streamable HTTP Mode Docker
+```bash
+# Build using streamable-http Dockerfile
+docker build -f Dockerfile.streamable-http -t mcp-weather-server:streamable-http .
+
+# Run in stateful mode
+docker run -p 8080:8080 mcp-weather-server:streamable-http
+
+# Run in stateless mode
+docker run -p 8080:8080 -e STATELESS=true mcp-weather-server:streamable-http
+```
+
 ## Development
 
 ### Project Structure
@@ -316,8 +410,7 @@ mcp_weather_server/
 │   └── mcp_weather_server/
 │       ├── __init__.py
 │       ├── __main__.py          # Main MCP server entry point
-│       ├── server.py            # Standard MCP server implementation
-│       ├── server-see.py        # SSE server implementation (NEW)
+│       ├── server.py            # Unified server (stdio, SSE, streamable-http)
 │       ├── utils.py             # Utility functions
 │       └── tools/               # Tool implementations
 │           ├── __init__.py
@@ -326,6 +419,8 @@ mcp_weather_server/
 │           ├── tools_time.py    # Time-related tools
 │           └── weather_service.py # Weather API service
 ├── tests/
+├── Dockerfile                   # Docker configuration for SSE mode
+├── Dockerfile.streamable-http   # Docker configuration for streamable-http mode
 ├── pyproject.toml
 ├── requirements.txt
 └── README.md
@@ -333,7 +428,7 @@ mcp_weather_server/
 
 ### Running for Development
 
-#### Standard MCP Mode
+#### Standard MCP Mode (stdio)
 ```bash
 # From project root
 python -m mcp_weather_server
@@ -346,10 +441,19 @@ python -m mcp_weather_server
 #### SSE Server Mode
 ```bash
 # From project root
-python src/mcp_weather_server/server-see.py --host 0.0.0.0 --port 8080
+python -m mcp_weather_server --mode sse --host 0.0.0.0 --port 8080
 
 # With custom host/port
-python src/mcp_weather_server/server-see.py --host localhost --port 3000
+python -m mcp_weather_server --mode sse --host localhost --port 3000
+```
+
+#### Streamable HTTP Mode
+```bash
+# Stateful mode (default)
+python -m mcp_weather_server --mode streamable-http --host 0.0.0.0 --port 8080
+
+# With debug logging
+python -m mcp_weather_server --mode streamable-http --debug
 ```
 
 ### Adding New Tools
@@ -393,10 +497,15 @@ This server uses the [Open-Meteo API](https://open-meteo.com/), which is:
 - Try using the full city name or include country (e.g., "Paris, France")
 - Check spelling of city names
 
-**2. SSE Server not accessible**
-- Verify the server is running: `python src/mcp_weather_server/server-see.py`
+**2. HTTP Server not accessible (SSE or Streamable HTTP)**
+- Verify the server is running with the correct mode:
+  - SSE: `python -m mcp_weather_server --mode sse`
+  - Streamable HTTP: `python -m mcp_weather_server --mode streamable-http`
 - Check firewall settings for the specified port
 - Ensure all dependencies are installed: `pip install starlette uvicorn`
+- Verify the correct endpoint:
+  - SSE: `http://localhost:8080/sse` and `http://localhost:8080/messages/`
+  - Streamable HTTP: `http://localhost:8080/mcp`
 
 **3. MCP Client connection issues**
 - Verify Python path in MCP client configuration
@@ -420,7 +529,17 @@ The server returns structured error messages:
 
 ## Changelog
 
-### v0.2.1 (Current)
+### Latest Version
+- **Added Streamable HTTP protocol support** - New `streamable-http` mode implementing the modern MCP Streamable HTTP specification
+  - Stateful mode (default) with session management
+  - Stateless mode for independent requests
+  - Single `/mcp` endpoint for all MCP operations
+- Added unified server architecture supporting stdio, SSE, and streamable-http in one codebase
+- Added Docker configuration for streamable-http deployment
+- Enhanced command-line interface with `--stateless` flag
+- Improved CORS configuration for web integration
+
+### v0.2.1
 - Added HTTP SSE (Server-Sent Events) support
 - Added timezone conversion tools
 - Enhanced weather data formatting
