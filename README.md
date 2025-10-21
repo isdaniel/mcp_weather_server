@@ -12,11 +12,28 @@ A Model Context Protocol (MCP) server that provides weather information using th
 
 ## Features
 
-* Get current weather information for a specified city
-* Get weather data for a date range
+### Weather & Air Quality
+* Get current weather information with comprehensive metrics:
+  * Temperature, humidity, dew point
+  * Wind speed, direction, and gusts
+  * Precipitation (rain/snow) and probability
+  * Atmospheric pressure and cloud cover
+  * UV index and visibility
+  * "Feels like" temperature
+* Get weather data for a date range with hourly details
+* Get air quality information including:
+  * PM2.5 and PM10 particulate matter
+  * Ozone, nitrogen dioxide, carbon monoxide
+  * Sulfur dioxide, ammonia, dust
+  * Aerosol optical depth
+  * Health advisories and recommendations
+
+### Time & Timezone
 * Get current date/time in any timezone
 * Convert time between timezones
 * Get timezone information
+
+### Transport Modes
 * Multiple transport modes:
   * **stdio** - Standard MCP for desktop clients (Claude Desktop, etc.)
   * **SSE** - Server-Sent Events for web applications
@@ -204,55 +221,129 @@ This server provides several tools for weather and time-related operations:
 
 ### Available Tools
 
-1. **`get_current_weather`** - Get current weather for a city
-2. **`get_weather_by_datetime_range`** - Get weather data for a date range
-3. **`get_current_datetime`** - Get current time in any timezone
-4. **`get_timezone_info`** - Get timezone information
-5. **`convert_time`** - Convert time between timezones
+#### Weather Tools
+1. **`get_current_weather`** - Get current weather for a city with comprehensive metrics
+2. **`get_weather_by_datetime_range`** - Get weather data for a date range with hourly details
+3. **`get_weather_details`** - Get detailed weather information as structured JSON data
+
+#### Air Quality Tools
+4. **`get_air_quality`** - Get air quality information with pollutant levels and health advice
+5. **`get_air_quality_details`** - Get detailed air quality data as structured JSON
+
+#### Time & Timezone Tools
+6. **`get_current_datetime`** - Get current time in any timezone
+7. **`get_timezone_info`** - Get timezone information
+8. **`convert_time`** - Convert time between timezones
 
 ### Tool Details
 
 #### `get_current_weather`
 
-Retrieves the current weather information for a given city.
+Retrieves comprehensive current weather information for a given city with enhanced metrics.
 
 **Parameters:**
 - `city` (string, required): The name of the city (English names only)
 
-**Returns:** JSON formatted weather data with current temperature and conditions
+**Returns:** Detailed weather data including:
+- Temperature and "feels like" temperature
+- Humidity, dew point
+- Wind speed, direction (as compass direction), and gusts
+- Precipitation details (rain/snow) and probability
+- Atmospheric pressure and cloud cover
+- UV index with warning levels
+- Visibility
 
-**Example:**
-```json
-{
-  "city": "Taipei",
-  "weather": "Partly cloudy",
-  "temperature_celsius": 25
-}
+**Example Response:**
+```
+The weather in Tokyo is Mainly clear with a temperature of 22.5°C (feels like 21.0°C), 
+relative humidity at 65%, and dew point at 15.5°C. Wind is blowing from the NE at 12.5 km/h 
+with gusts up to 18.5 km/h. Atmospheric pressure is 1013.2 hPa with 25% cloud cover. 
+UV index is 5.5 (Moderate). Visibility is 10.0 km.
 ```
 
 #### `get_weather_by_datetime_range`
 
-Retrieves weather information for a specified city between start and end dates.
+Retrieves hourly weather information with comprehensive metrics for a specified city between start and end dates.
 
 **Parameters:**
 - `city` (string, required): The name of the city (English names only)
 - `start_date` (string, required): Start date in format YYYY-MM-DD (ISO 8601)
 - `end_date` (string, required): End date in format YYYY-MM-DD (ISO 8601)
 
-**Returns:** JSON array with daily weather summaries
+**Returns:** Comprehensive weather analysis including:
+- Hourly weather data with all enhanced metrics
+- Temperature trends (highs, lows, averages)
+- Precipitation patterns and probabilities
+- Wind conditions assessment
+- UV index trends
+- Weather warnings and recommendations
 
-**Example:**
-```json
-[
-  {
-    "date": "2024-01-01",
-    "day_of_week": "Monday",
-    "city": "London",
-    "weather": "Light rain",
-    "temperature_celsius": 8
-  }
-]
+**Example Response:**
 ```
+[Analysis of weather trends over 2024-01-01 to 2024-01-07]
+- Temperature ranges from 5°C to 15°C
+- Precipitation expected on Jan 3rd and 5th (60% probability)
+- Wind speeds averaging 15 km/h from SW direction
+- UV index moderate (3-5) throughout the period
+- Recommendation: Umbrella needed for midweek
+```
+
+#### `get_weather_details`
+
+Get detailed weather information for a specified city as structured JSON data for programmatic use.
+
+**Parameters:**
+- `city` (string, required): The name of the city (English names only)
+
+**Returns:** Raw JSON data with all weather metrics suitable for processing and analysis
+
+#### `get_air_quality`
+
+Get current air quality information for a specified city with pollutant levels and health advisories.
+
+**Parameters:**
+- `city` (string, required): The name of the city (English names only)
+- `variables` (array, optional): Specific pollutants to retrieve. Options:
+  - `pm10` - Particulate matter ≤10μm
+  - `pm2_5` - Particulate matter ≤2.5μm
+  - `carbon_monoxide` - CO levels
+  - `nitrogen_dioxide` - NO2 levels
+  - `ozone` - O3 levels
+  - `sulphur_dioxide` - SO2 levels
+  - `ammonia` - NH3 levels
+  - `dust` - Dust particle levels
+  - `aerosol_optical_depth` - Atmospheric turbidity
+
+**Returns:** Comprehensive air quality report including:
+- Current pollutant levels with units
+- Air quality classification (Good/Moderate/Unhealthy/Hazardous)
+- Health recommendations for general population
+- Specific warnings for sensitive groups
+- Comparison with WHO and EPA standards
+
+**Example Response:**
+```
+Air quality in Beijing (lat: 39.90, lon: 116.41):
+PM2.5: 45.3 μg/m³ (Unhealthy for Sensitive Groups)
+PM10: 89.2 μg/m³ (Moderate)
+Ozone (O3): 52.1 μg/m³
+Nitrogen Dioxide (NO2): 38.5 μg/m³
+Carbon Monoxide (CO): 420.0 μg/m³
+
+Health Advice: Sensitive groups (children, elderly, people with respiratory conditions) 
+should limit outdoor activities.
+```
+
+#### `get_air_quality_details`
+
+Get detailed air quality information as structured JSON data for programmatic analysis.
+
+**Parameters:**
+- `city` (string, required): The name of the city (English names only)
+- `variables` (array, optional): Specific pollutants to retrieve (same options as `get_air_quality`)
+
+**Returns:** Raw JSON data with complete air quality metrics and hourly data
+
 #### `get_current_datetime`
 
 Retrieves the current time in a specified timezone.
@@ -333,6 +424,31 @@ Convert time from one timezone to another.
 </use_mcp_tool>
 ```
 
+```xml
+<use_mcp_tool>
+<server_name>weather</server_name>
+<tool_name>get_air_quality</tool_name>
+<arguments>
+{
+  "city": "Beijing"
+}
+</arguments>
+</use_mcp_tool>
+```
+
+```xml
+<use_mcp_tool>
+<server_name>weather</server_name>
+<tool_name>get_air_quality</tool_name>
+<arguments>
+{
+  "city": "Los Angeles",
+  "variables": ["pm2_5", "pm10", "ozone"]
+}
+</arguments>
+</use_mcp_tool>
+```
+
 ## Web Integration (SSE Mode)
 
 When running in SSE mode, you can integrate the weather server with web applications:
@@ -375,6 +491,25 @@ When running in SSE mode, you can integrate the weather server with web applicat
 
         // Example: Get weather for Tokyo
         getWeather('Tokyo');
+
+        // Example: Get air quality
+        async function getAirQuality(city) {
+            const response = await fetch('http://localhost:8080/messages/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'tools/call',
+                    params: {
+                        name: 'get_air_quality',
+                        arguments: { city: city }
+                    },
+                    id: 2
+                })
+            });
+        }
+
+        getAirQuality('Beijing');
     </script>
 </body>
 </html>
@@ -425,7 +560,9 @@ mcp_weather_server/
 │           ├── toolhandler.py   # Base tool handler
 │           ├── tools_weather.py # Weather-related tools
 │           ├── tools_time.py    # Time-related tools
-│           └── weather_service.py # Weather API service
+│           ├── tools_air_quality.py # Air quality tools
+│           ├── weather_service.py   # Weather API service
+│           └── air_quality_service.py # Air quality API service
 ├── tests/
 ├── Dockerfile                   # Docker configuration for SSE mode
 ├── Dockerfile.streamable-http   # Docker configuration for streamable-http mode
@@ -487,14 +624,25 @@ To add new weather or time-related tools:
 ### Development Dependencies
 - `pytest` - Testing framework
 
-## API Data Source
+## API Data Sources
 
-This server uses the [Open-Meteo API](https://open-meteo.com/), which is:
+This server uses free and open-source APIs:
+
+### Weather Data: [Open-Meteo Weather API](https://open-meteo.com/)
 - Free and open-source
 - No API key required
 - Provides accurate weather forecasts
 - Supports global locations
 - Historical and current weather data
+- Comprehensive metrics (wind, precipitation, UV, visibility)
+
+### Air Quality Data: [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api)
+- Free and open-source
+- No API key required
+- Real-time air quality data
+- Multiple pollutant measurements (PM2.5, PM10, O3, NO2, CO, SO2)
+- Global coverage
+- Health-based air quality indices
 
 ## Troubleshooting
 
@@ -537,7 +685,28 @@ The server returns structured error messages:
 
 ## Changelog
 
-### Latest Version
+### Latest Version (v0.3.0)
+- **Added Air Quality Monitoring** - Complete air quality service with health advisories
+  - PM2.5 and PM10 particulate matter monitoring
+  - Ozone, NO2, CO, SO2, ammonia, and dust levels
+  - Health-based air quality classifications
+  - Recommendations for general population and sensitive groups
+  - Two new tools: `get_air_quality` and `get_air_quality_details`
+- **Enhanced Weather Data** - Comprehensive weather metrics
+  - Wind speed, direction (compass), and gust information
+  - Precipitation details (rain/snow) with probabilities
+  - Atmospheric pressure and cloud cover
+  - UV index with warning levels (Low/Moderate/High/Very High/Extreme)
+  - "Feels like" temperature (apparent temperature)
+  - Visibility measurements
+- **Improved Data Formatting** - AI-friendly comprehensive field descriptions
+  - Detailed explanations of all weather and air quality metrics
+  - Enhanced formatting for better LLM comprehension
+  - Structured JSON output options for programmatic use
+- Added helper methods for wind direction conversion and UV warnings
+- Expanded test coverage with air quality and enhanced weather tests
+
+### v0.2.2
 - **Added Streamable HTTP protocol support** - New `streamable-http` mode implementing the modern MCP Streamable HTTP specification
   - Stateful mode (default) with session management
   - Stateless mode for independent requests
