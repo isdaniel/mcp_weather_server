@@ -255,9 +255,9 @@ Retrieves comprehensive current weather information for a given city with enhanc
 
 **Example Response:**
 ```
-The weather in Tokyo is Mainly clear with a temperature of 22.5°C (feels like 21.0°C), 
-relative humidity at 65%, and dew point at 15.5°C. Wind is blowing from the NE at 12.5 km/h 
-with gusts up to 18.5 km/h. Atmospheric pressure is 1013.2 hPa with 25% cloud cover. 
+The weather in Tokyo is Mainly clear with a temperature of 22.5°C (feels like 21.0°C),
+relative humidity at 65%, and dew point at 15.5°C. Wind is blowing from the NE at 12.5 km/h
+with gusts up to 18.5 km/h. Atmospheric pressure is 1013.2 hPa with 25% cloud cover.
 UV index is 5.5 (Moderate). Visibility is 10.0 km.
 ```
 
@@ -330,7 +330,7 @@ Ozone (O3): 52.1 μg/m³
 Nitrogen Dioxide (NO2): 38.5 μg/m³
 Carbon Monoxide (CO): 420.0 μg/m³
 
-Health Advice: Sensitive groups (children, elderly, people with respiratory conditions) 
+Health Advice: Sensitive groups (children, elderly, people with respiratory conditions)
 should limit outdoor activities.
 ```
 
@@ -636,7 +636,7 @@ This server uses free and open-source APIs:
 - Historical and current weather data
 - Comprehensive metrics (wind, precipitation, UV, visibility)
 
-### Air Quality Data: [Open-Meteo Air Quality API](https://open-meteo.com/en/docs/air-quality-api)
+### Air Quality Data:
 - Free and open-source
 - No API key required
 - Real-time air quality data
@@ -683,46 +683,3 @@ The server returns structured error messages:
 }
 ```
 
-## Changelog
-
-### Latest Version (v0.3.0)
-- **Added Air Quality Monitoring** - Complete air quality service with health advisories
-  - PM2.5 and PM10 particulate matter monitoring
-  - Ozone, NO2, CO, SO2, ammonia, and dust levels
-  - Health-based air quality classifications
-  - Recommendations for general population and sensitive groups
-  - Two new tools: `get_air_quality` and `get_air_quality_details`
-- **Enhanced Weather Data** - Comprehensive weather metrics
-  - Wind speed, direction (compass), and gust information
-  - Precipitation details (rain/snow) with probabilities
-  - Atmospheric pressure and cloud cover
-  - UV index with warning levels (Low/Moderate/High/Very High/Extreme)
-  - "Feels like" temperature (apparent temperature)
-  - Visibility measurements
-- **Improved Data Formatting** - AI-friendly comprehensive field descriptions
-  - Detailed explanations of all weather and air quality metrics
-  - Enhanced formatting for better LLM comprehension
-  - Structured JSON output options for programmatic use
-- Added helper methods for wind direction conversion and UV warnings
-- Expanded test coverage with air quality and enhanced weather tests
-
-### v0.2.2
-- **Added Streamable HTTP protocol support** - New `streamable-http` mode implementing the modern MCP Streamable HTTP specification
-  - Stateful mode (default) with session management
-  - Stateless mode for independent requests
-  - Single `/mcp` endpoint for all MCP operations
-- Added unified server architecture supporting stdio, SSE, and streamable-http in one codebase
-- Added Docker configuration for streamable-http deployment
-- Enhanced command-line interface with `--stateless` flag
-- Improved CORS configuration for web integration
-
-### v0.2.1
-- Added HTTP SSE (Server-Sent Events) support
-- Added timezone conversion tools
-- Enhanced weather data formatting
-- Improved error handling
-- Added comprehensive documentation
-
-### Previous Versions
-- v0.2.0: Added date range weather queries
-- v0.1.0: Initial release with basic weather functionality
