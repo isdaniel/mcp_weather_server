@@ -34,6 +34,10 @@ from .tools.tools_time import (
     GetTimeZoneInfoToolHandler,
     ConvertTimeToolHandler,
 )
+from .tools.tools_air_quality import (
+    GetAirQualityToolHandler,
+    GetAirQualityDetailsToolHandler,
+)
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -87,6 +91,10 @@ def register_all_tools() -> None:
     add_tool_handler(GetCurrentDateTimeToolHandler())
     add_tool_handler(GetTimeZoneInfoToolHandler())
     add_tool_handler(ConvertTimeToolHandler())
+
+    # Air quality tools
+    add_tool_handler(GetAirQualityToolHandler())
+    add_tool_handler(GetAirQualityDetailsToolHandler())
 
     logger.info(f"Registered {len(tool_handlers)} tool handlers")
 
