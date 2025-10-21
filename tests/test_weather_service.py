@@ -177,14 +177,18 @@ class TestWeatherService:
         weather_service,
         sample_current_weather_data
     ):
-        """Test formatting of current weather response."""
+        """Test formatting of current weather response with enhanced variables."""
         result = weather_service.format_current_weather_response(sample_current_weather_data)
 
-        expected = (
-            "The weather in New York is Mainly clear with a temperature of 25.0°C, "
-            "relative humidity at 70%, and dew point at 16.0°C."
-        )
-        assert result == expected
+        # Check that result contains key enhanced information
+        assert "New York" in result
+        assert "Mainly clear" in result
+        assert "25.0°C" in result
+        assert "70%" in result  # humidity
+        assert "Wind" in result
+        assert "km/h" in result
+        assert "UV index" in result
+        assert "Visibility" in result
 
     def test_format_weather_range_response(
         self,

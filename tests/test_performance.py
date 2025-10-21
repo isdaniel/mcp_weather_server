@@ -34,7 +34,19 @@ class TestPerformance:
                 "temperature_2m": [20.0],
                 "relative_humidity_2m": [60],
                 "dew_point_2m": [12.0],
-                "weather_code": [0]
+                "weather_code": [0],
+                "wind_speed_10m": [15.0],
+                "wind_direction_10m": [180],
+                "wind_gusts_10m": [25.0],
+                "precipitation": [0.0],
+                "rain": [0.0],
+                "snowfall": [0.0],
+                "precipitation_probability": [10],
+                "pressure_msl": [1013.25],
+                "cloud_cover": [25],
+                "uv_index": [5.0],
+                "apparent_temperature": [19.0],
+                "visibility": [10000]
             }
         }
 
@@ -75,7 +87,19 @@ class TestPerformance:
                 "temperature_2m": [20.0],
                 "relative_humidity_2m": [60],
                 "dew_point_2m": [12.0],
-                "weather_code": [0]
+                "weather_code": [0],
+                "wind_speed_10m": [15.0],
+                "wind_direction_10m": [180],
+                "wind_gusts_10m": [25.0],
+                "precipitation": [0.0],
+                "rain": [0.0],
+                "snowfall": [0.0],
+                "precipitation_probability": [10],
+                "pressure_msl": [1013.25],
+                "cloud_cover": [25],
+                "uv_index": [5.0],
+                "apparent_temperature": [19.0],
+                "visibility": [10000]
             }
         }
 
@@ -155,7 +179,19 @@ class TestPerformance:
                 "temperature_2m": [20.0],
                 "relative_humidity_2m": [60],
                 "dew_point_2m": [12.0],
-                "weather_code": [0]
+                "weather_code": [0],
+                "wind_speed_10m": [15.0],
+                "wind_direction_10m": [180],
+                "wind_gusts_10m": [25.0],
+                "precipitation": [0.0],
+                "rain": [0.0],
+                "snowfall": [0.0],
+                "precipitation_probability": [10],
+                "pressure_msl": [1013.25],
+                "cloud_cover": [25],
+                "uv_index": [5.0],
+                "apparent_temperature": [19.0],
+                "visibility": [10000]
             }
         }
 
@@ -357,7 +393,19 @@ class TestStressConditions:
                             "temperature_2m": [20.0],
                             "relative_humidity_2m": [60],
                             "dew_point_2m": [12.0],
-                            "weather_code": [0]
+                            "weather_code": [0],
+                            "wind_speed_10m": [15.0],
+                            "wind_direction_10m": [180],
+                            "wind_gusts_10m": [25.0],
+                            "precipitation": [0.0],
+                            "rain": [0.0],
+                            "snowfall": [0.0],
+                            "precipitation_probability": [10],
+                            "pressure_msl": [1013.25],
+                            "cloud_cover": [25],
+                            "uv_index": [5.0],
+                            "apparent_temperature": [19.0],
+                            "visibility": [10000]
                         }
                     }
             return response

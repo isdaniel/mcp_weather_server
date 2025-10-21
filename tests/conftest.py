@@ -197,7 +197,7 @@ def mock_empty_geo_response():
 
 @pytest.fixture
 def mock_weather_response():
-    """Mock weather API response."""
+    """Mock weather API response with all enhanced variables."""
     return {
         "hourly": {
             "time": [
@@ -207,14 +207,30 @@ def mock_weather_response():
             "temperature_2m": [20.0, 21.0],
             "relative_humidity_2m": [65, 66],
             "dew_point_2m": [13.0, 14.0],
-            "weather_code": [0, 1]
+            "weather_code": [0, 1],
+            # Wind data
+            "wind_speed_10m": [15.0, 16.0],
+            "wind_direction_10m": [180, 185],
+            "wind_gusts_10m": [25.0, 26.0],
+            # Precipitation data
+            "precipitation": [0.0, 0.1],
+            "rain": [0.0, 0.1],
+            "snowfall": [0.0, 0.0],
+            "precipitation_probability": [10, 15],
+            # Atmospheric data
+            "pressure_msl": [1013.25, 1013.5],
+            "cloud_cover": [25, 30],
+            # Comfort & safety
+            "uv_index": [5.0, 5.5],
+            "apparent_temperature": [19.0, 20.0],
+            "visibility": [10000, 9500]
         }
     }
 
 
 @pytest.fixture
 def mock_weather_range_response():
-    """Mock weather range API response."""
+    """Mock weather range API response with all enhanced variables."""
     return {
         "hourly": {
             "time": [
@@ -226,23 +242,56 @@ def mock_weather_range_response():
             "temperature_2m": [20.0, 21.0, 22.0, 23.0],
             "relative_humidity_2m": [65, 66, 67, 68],
             "dew_point_2m": [13.0, 14.0, 15.0, 16.0],
-            "weather_code": [0, 1, 0, 1]
+            "weather_code": [0, 1, 0, 1],
+            # Wind data
+            "wind_speed_10m": [15.0, 16.0, 17.0, 18.0],
+            "wind_direction_10m": [180, 185, 190, 195],
+            "wind_gusts_10m": [25.0, 26.0, 27.0, 28.0],
+            # Precipitation data
+            "precipitation": [0.0, 0.1, 0.2, 0.0],
+            "rain": [0.0, 0.1, 0.2, 0.0],
+            "snowfall": [0.0, 0.0, 0.0, 0.0],
+            "precipitation_probability": [10, 15, 20, 10],
+            # Atmospheric data
+            "pressure_msl": [1013.25, 1013.5, 1013.75, 1014.0],
+            "cloud_cover": [25, 30, 35, 40],
+            # Comfort & safety
+            "uv_index": [5.0, 5.5, 6.0, 6.5],
+            "apparent_temperature": [19.0, 20.0, 21.0, 22.0],
+            "visibility": [10000, 9500, 9000, 8500]
         }
     }
 
 
 @pytest.fixture
 def sample_current_weather_data():
-    """Sample current weather data for testing."""
+    """Sample current weather data for testing with all enhanced variables."""
     return {
         "city": "New York",
         "latitude": 40.7128,
         "longitude": -74.0060,
+        "time": "2024-01-01T12:00",
         "temperature_c": 25.0,
         "relative_humidity_percent": 70,
         "dew_point_c": 16.0,
         "weather_code": 1,
-        "weather_description": "Mainly clear"
+        "weather_description": "Mainly clear",
+        # Wind data
+        "wind_speed_kmh": 15.0,
+        "wind_direction_degrees": 180,
+        "wind_gusts_kmh": 25.0,
+        # Precipitation data
+        "precipitation_mm": 0.0,
+        "rain_mm": 0.0,
+        "snowfall_cm": 0.0,
+        "precipitation_probability_percent": 10,
+        # Atmospheric data
+        "pressure_hpa": 1013.25,
+        "cloud_cover_percent": 25,
+        # Comfort & safety
+        "uv_index": 5.0,
+        "apparent_temperature_c": 24.0,
+        "visibility_m": 10000
     }
 
 
@@ -277,20 +326,49 @@ def sample_weather_range_data():
 # HTTP client mock fixtures
 @pytest.fixture
 def mock_successful_geo_client():
-    """Mock successful geocoding client."""
+    """Mock successful geocoding client with enhanced weather data."""
     from unittest.mock import AsyncMock, Mock
     client = AsyncMock()
-    response = Mock()
-    response.status_code = 200
-    response.json.return_value = {
-        "results": [
-            {
-                "latitude": 40.7128,
-                "longitude": -74.0060
+
+    def mock_get(url):
+        response = Mock()
+        response.status_code = 200
+
+        if "geocoding-api" in url:
+            response.json.return_value = {
+                "results": [
+                    {
+                        "latitude": 40.7128,
+                        "longitude": -74.0060
+                    }
+                ]
             }
-        ]
-    }
-    client.get.return_value = response
+        else:
+            # Weather API response with enhanced variables
+            response.json.return_value = {
+                "hourly": {
+                    "time": ["2024-01-01T12:00"],
+                    "temperature_2m": [20.0],
+                    "relative_humidity_2m": [65],
+                    "dew_point_2m": [13.0],
+                    "weather_code": [0],
+                    "wind_speed_10m": [15.0],
+                    "wind_direction_10m": [180],
+                    "wind_gusts_10m": [25.0],
+                    "precipitation": [0.0],
+                    "rain": [0.0],
+                    "snowfall": [0.0],
+                    "precipitation_probability": [10],
+                    "pressure_msl": [1013.25],
+                    "cloud_cover": [25],
+                    "uv_index": [5.0],
+                    "apparent_temperature": [19.0],
+                    "visibility": [10000]
+                }
+            }
+        return response
+
+    client.get.side_effect = mock_get
     return client
 
 
