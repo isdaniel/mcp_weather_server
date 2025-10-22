@@ -1,4 +1,4 @@
-name: Build & Publish Docker streamable-http image
+name: Build & Publish Docker
 
 on:
   push:
