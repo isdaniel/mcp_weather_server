@@ -44,6 +44,10 @@ A Model Context Protocol (MCP) server that provides weather information using th
   * **streamable-http** - Modern MCP Streamable HTTP protocol with stateful/stateless options
 * RESTful API endpoints via Starlette integration
 
+## Hosted deployment
+
+A hosted deployment is available on [Fronteir AI](https://fronteir.ai/mcp/isdaniel-mcp-weather-server).
+
 ## Installation
 
 ### Installing via Smithery
