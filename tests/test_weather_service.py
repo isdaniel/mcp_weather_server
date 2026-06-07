@@ -110,6 +110,8 @@ class TestWeatherService:
                     assert result["dew_point_c"] == 14.0
                     assert result["weather_code"] == 1
                     assert "Mainly clear" in result["weather_description"]
+                    assert result["sunrise"] == "2024-01-01T07:32"
+                    assert result["sunset"] == "2024-01-01T16:15"
 
     @pytest.mark.asyncio
     async def test_get_current_weather_api_error(self, weather_service):
@@ -153,6 +155,11 @@ class TestWeatherService:
                 assert len(result["weather_data"]) == 4
                 assert result["weather_data"][0]["temperature_c"] == 20.0
                 assert result["weather_data"][1]["weather_description"] == "Mainly clear"
+                assert len(result["daily_sun_times"]) == 2
+                assert result["daily_sun_times"][0]["date"] == "2024-01-01"
+                assert result["daily_sun_times"][0]["sunrise"] == "2024-01-01T07:32"
+                assert result["daily_sun_times"][0]["sunset"] == "2024-01-01T16:15"
+                assert result["daily_sun_times"][1]["date"] == "2024-01-02"
 
     @pytest.mark.asyncio
     async def test_get_weather_by_date_range_invalid_response(self, weather_service):
@@ -189,6 +196,9 @@ class TestWeatherService:
         assert "km/h" in result
         assert "UV index" in result
         assert "Visibility" in result
+        assert "Sunrise" in result
+        assert "2024-01-01T07:32" in result
+        assert "2024-01-01T16:15" in result
 
     def test_format_weather_range_response(
         self,

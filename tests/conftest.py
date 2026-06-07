@@ -199,6 +199,7 @@ def mock_empty_geo_response():
 def mock_weather_response():
     """Mock weather API response with all enhanced variables."""
     return {
+        "utc_offset_seconds": 0,
         "hourly": {
             "time": [
                 "2024-01-01T12:00",
@@ -224,6 +225,11 @@ def mock_weather_response():
             "uv_index": [5.0, 5.5],
             "apparent_temperature": [19.0, 20.0],
             "visibility": [10000, 9500]
+        },
+        "daily": {
+            "time": ["2024-01-01"],
+            "sunrise": ["2024-01-01T07:32"],
+            "sunset": ["2024-01-01T16:15"],
         }
     }
 
@@ -232,6 +238,7 @@ def mock_weather_response():
 def mock_weather_range_response():
     """Mock weather range API response with all enhanced variables."""
     return {
+        "utc_offset_seconds": 0,
         "hourly": {
             "time": [
                 "2024-01-01T12:00",
@@ -259,6 +266,11 @@ def mock_weather_range_response():
             "uv_index": [5.0, 5.5, 6.0, 6.5],
             "apparent_temperature": [19.0, 20.0, 21.0, 22.0],
             "visibility": [10000, 9500, 9000, 8500]
+        },
+        "daily": {
+            "time": ["2024-01-01", "2024-01-02"],
+            "sunrise": ["2024-01-01T07:32", "2024-01-02T07:33"],
+            "sunset": ["2024-01-01T16:15", "2024-01-02T16:16"],
         }
     }
 
@@ -291,7 +303,10 @@ def sample_current_weather_data():
         # Comfort & safety
         "uv_index": 5.0,
         "apparent_temperature_c": 24.0,
-        "visibility_m": 10000
+        "visibility_m": 10000,
+        # Sun times
+        "sunrise": "2024-01-01T07:32",
+        "sunset": "2024-01-01T16:15",
     }
 
 
@@ -319,6 +334,10 @@ def sample_weather_range_data():
                 "weather_code": 1,
                 "weather_description": "Mainly clear"
             }
+        ],
+        "daily_sun_times": [
+            {"date": "2024-01-01", "sunrise": "2024-01-01T07:32", "sunset": "2024-01-01T16:15"},
+            {"date": "2024-01-02", "sunrise": "2024-01-02T07:33", "sunset": "2024-01-02T16:16"},
         ]
     }
 
@@ -346,6 +365,7 @@ def mock_successful_geo_client():
         else:
             # Weather API response with enhanced variables
             response.json.return_value = {
+                "utc_offset_seconds": 0,
                 "hourly": {
                     "time": ["2024-01-01T12:00"],
                     "temperature_2m": [20.0],
@@ -364,6 +384,11 @@ def mock_successful_geo_client():
                     "uv_index": [5.0],
                     "apparent_temperature": [19.0],
                     "visibility": [10000]
+                },
+                "daily": {
+                    "time": ["2024-01-01"],
+                    "sunrise": ["2024-01-01T07:32"],
+                    "sunset": ["2024-01-01T16:15"],
                 }
             }
         return response

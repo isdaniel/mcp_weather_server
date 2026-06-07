@@ -17,6 +17,7 @@ def weather_service():
 def mock_enhanced_weather_response():
     """Mock enhanced weather API response."""
     return {
+        "utc_offset_seconds": 32400,
         "hourly": {
             "time": ["2024-10-21T12:00", "2024-10-21T13:00", "2024-10-21T14:00"],
             "temperature_2m": [22.5, 23.0, 23.5],
@@ -35,6 +36,11 @@ def mock_enhanced_weather_response():
             "uv_index": [5.5, 6.0, 5.8],
             "apparent_temperature": [23.0, 23.5, 24.0],
             "visibility": [10000, 9800, 9500]
+        },
+        "daily": {
+            "time": ["2024-10-21"],
+            "sunrise": ["2024-10-21T05:52"],
+            "sunset": ["2024-10-21T17:04"],
         }
     }
 
@@ -81,6 +87,8 @@ class TestEnhancedWeatherService:
             assert "uv_index" in result
             assert "apparent_temperature_c" in result
             assert "visibility_m" in result
+            assert "sunrise" in result
+            assert "sunset" in result
 
     def test_degrees_to_compass(self, weather_service):
         """Test wind direction conversion from degrees to compass."""

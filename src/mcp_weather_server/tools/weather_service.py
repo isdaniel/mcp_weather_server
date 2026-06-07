@@ -83,7 +83,8 @@ class WeatherService:
                 f"wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
                 f"precipitation,rain,snowfall,precipitation_probability,"
                 f"pressure_msl,cloud_cover,uv_index,apparent_temperature,visibility"
-                f"&timezone=GMT&forecast_days=1"
+                f"&daily=sunrise,sunset"
+                f"&timezone=auto&forecast_days=1"
             )
 
             logger.info(f"Fetching current weather from: {url}")
@@ -96,8 +97,11 @@ class WeatherService:
 
                 weather_data = weather_response.json()
 
-                # Find the current hour index
-                current_index = utils.get_closest_utc_index(weather_data["hourly"]["time"])
+                # Find the current hour index, accounting for local timezone offset
+                utc_offset_seconds = weather_data.get("utc_offset_seconds", 0)
+                current_index = utils.get_closest_utc_index(
+                    weather_data["hourly"]["time"], utc_offset_seconds
+                )
 
                 # Extract current weather data with all enhanced variables
                 current_weather = {
@@ -129,6 +133,9 @@ class WeatherService:
                     "uv_index": weather_data["hourly"]["uv_index"][current_index],
                     "apparent_temperature_c": weather_data["hourly"]["apparent_temperature"][current_index],
                     "visibility_m": weather_data["hourly"]["visibility"][current_index],
+                    # Sun times (local time at location)
+                    "sunrise": weather_data["daily"]["sunrise"][0],
+                    "sunset": weather_data["daily"]["sunset"][0],
                 }
 
                 return current_weather
@@ -169,7 +176,8 @@ class WeatherService:
                 f"wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
                 f"precipitation,rain,snowfall,precipitation_probability,"
                 f"pressure_msl,cloud_cover,uv_index,apparent_temperature,visibility"
-                f"&timezone=GMT&start_date={start_date}&end_date={end_date}"
+                f"&daily=sunrise,sunset"
+                f"&timezone=auto&start_date={start_date}&end_date={end_date}"
             )
 
             logger.info(f"Fetching weather history from: {url}")
@@ -211,13 +219,23 @@ class WeatherService:
                         "visibility_m": hourly["visibility"][i],
                     })
 
+                daily_sun_times = []
+                if "daily" in data:
+                    for i, date in enumerate(data["daily"]["time"]):
+                        daily_sun_times.append({
+                            "date": date,
+                            "sunrise": data["daily"]["sunrise"][i],
+                            "sunset": data["daily"]["sunset"][i],
+                        })
+
                 return {
                     "city": city,
                     "latitude": latitude,
                     "longitude": longitude,
                     "start_date": start_date,
                     "end_date": end_date,
-                    "weather_data": weather_data
+                    "weather_data": weather_data,
+                    "daily_sun_times": daily_sun_times,
                 }
 
         except httpx.RequestError as e:
@@ -287,6 +305,12 @@ class WeatherService:
         if visibility > 0:
             visibility_km = visibility / 1000
             base_text += f" Visibility is {visibility_km:.1f} km."
+
+        # Add sunrise/sunset
+        sunrise = weather_data.get('sunrise')
+        sunset = weather_data.get('sunset')
+        if sunrise and sunset:
+            base_text += f" Sunrise is at {sunrise} and sunset is at {sunset} (local time)."
 
         return base_text
 

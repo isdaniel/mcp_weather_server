@@ -34,6 +34,7 @@ class TestWeatherIntegration:
             "results": [{"latitude": 40.7128, "longitude": -74.0060}]
         }
         mock_weather_response = {
+            "utc_offset_seconds": 0,
             "hourly": {
                 "time": ["2024-01-01T12:00"],
                 "temperature_2m": [22.5],
@@ -52,6 +53,11 @@ class TestWeatherIntegration:
                 "uv_index": [5.0],
                 "apparent_temperature": [21.0],
                 "visibility": [10000]
+            },
+            "daily": {
+                "time": ["2024-01-01"],
+                "sunrise": ["2024-01-01T07:19"],
+                "sunset": ["2024-01-01T16:38"],
             }
         }
 
@@ -145,6 +151,7 @@ class TestWeatherIntegration:
             "results": [{"latitude": 48.8566, "longitude": 2.3522}]
         }
         mock_weather_response = {
+            "utc_offset_seconds": 3600,
             "hourly": {
                 "time": ["2024-01-01T14:00"],
                 "temperature_2m": [18.5],
@@ -163,6 +170,11 @@ class TestWeatherIntegration:
                 "uv_index": [4.0],
                 "apparent_temperature": [17.5],
                 "visibility": [9000]
+            },
+            "daily": {
+                "time": ["2024-01-01"],
+                "sunrise": ["2024-01-01T08:44"],
+                "sunset": ["2024-01-01T16:57"],
             }
         }
 
@@ -382,6 +394,7 @@ class TestConcurrentOperations:
             "New York": {
                 "geo": {"results": [{"latitude": 40.7128, "longitude": -74.0060}]},
                 "weather": {
+                    "utc_offset_seconds": -18000,
                     "hourly": {
                         "time": ["2024-01-01T12:00"],
                         "temperature_2m": [20.0],
@@ -400,12 +413,18 @@ class TestConcurrentOperations:
                         "uv_index": [5.0],
                         "apparent_temperature": [19.0],
                         "visibility": [10000]
+                    },
+                    "daily": {
+                        "time": ["2024-01-01"],
+                        "sunrise": ["2024-01-01T07:19"],
+                        "sunset": ["2024-01-01T16:38"],
                     }
                 }
             },
             "London": {
                 "geo": {"results": [{"latitude": 51.5074, "longitude": -0.1278}]},
                 "weather": {
+                    "utc_offset_seconds": 0,
                     "hourly": {
                         "time": ["2024-01-01T12:00"],
                         "temperature_2m": [15.0],
@@ -424,6 +443,11 @@ class TestConcurrentOperations:
                         "uv_index": [2.0],
                         "apparent_temperature": [14.0],
                         "visibility": [8000]
+                    },
+                    "daily": {
+                        "time": ["2024-01-01"],
+                        "sunrise": ["2024-01-01T08:06"],
+                        "sunset": ["2024-01-01T16:01"],
                     }
                 }
             }
@@ -499,6 +523,7 @@ class TestConcurrentOperations:
             "results": [{"latitude": 35.6762, "longitude": 139.6503}]
         }
         mock_weather_response = {
+            "utc_offset_seconds": 32400,
             "hourly": {
                 "time": ["2024-01-01T12:00"],
                 "temperature_2m": [25.0],
@@ -517,6 +542,11 @@ class TestConcurrentOperations:
                 "uv_index": [7.0],
                 "apparent_temperature": [24.5],
                 "visibility": [12000]
+            },
+            "daily": {
+                "time": ["2024-01-01"],
+                "sunrise": ["2024-01-01T06:51"],
+                "sunset": ["2024-01-01T16:37"],
             }
         }
 
