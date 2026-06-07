@@ -134,8 +134,8 @@ class WeatherService:
                     "apparent_temperature_c": weather_data["hourly"]["apparent_temperature"][current_index],
                     "visibility_m": weather_data["hourly"]["visibility"][current_index],
                     # Sun times (local time at location)
-                    "sunrise": weather_data["daily"]["sunrise"][0],
-                    "sunset": weather_data["daily"]["sunset"][0],
+                    "sunrise": (weather_data.get("daily", {}).get("sunrise") or [None])[0],
+                    "sunset": (weather_data.get("daily", {}).get("sunset") or [None])[0],
                 }
 
                 return current_weather
@@ -221,11 +221,16 @@ class WeatherService:
 
                 daily_sun_times = []
                 if "daily" in data:
-                    for i, date in enumerate(data["daily"]["time"]):
+                    daily = data["daily"]
+                    for date, sunrise, sunset in zip(
+                        daily.get("time", []),
+                        daily.get("sunrise", []),
+                        daily.get("sunset", []),
+                    ):
                         daily_sun_times.append({
                             "date": date,
-                            "sunrise": data["daily"]["sunrise"][i],
-                            "sunset": data["daily"]["sunset"][i],
+                            "sunrise": sunrise,
+                            "sunset": sunset,
                         })
 
                 return {
