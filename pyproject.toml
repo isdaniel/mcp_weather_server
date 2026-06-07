@@ -24,6 +24,12 @@ dependencies = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_weather_server"]
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.4.0",
+]
+
 [project.scripts]
 mcp_weather_server = "mcp_weather_server:main"
 

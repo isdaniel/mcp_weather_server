@@ -260,6 +260,7 @@ class TestToolHandlerIntegration:
             "results": [{"latitude": 51.5074, "longitude": -0.1278}]
         }
         mock_weather_data = {
+            "utc_offset_seconds": 0,
             "hourly": {
                 "time": ["2024-01-01T12:00"],
                 "temperature_2m": [15.5],
@@ -278,6 +279,11 @@ class TestToolHandlerIntegration:
                 "uv_index": [2.0],
                 "apparent_temperature": [14.0],
                 "visibility": [8000]
+            },
+            "daily": {
+                "time": ["2024-01-01"],
+                "sunrise": ["2024-01-01T08:06"],
+                "sunset": ["2024-01-01T16:01"],
             }
         }
 
@@ -313,6 +319,8 @@ class TestToolHandlerIntegration:
                 assert "London" in result[0].text
                 assert "15.5°C" in result[0].text
                 assert "Slight rain" in result[0].text
+                assert "Sunrise" in result[0].text
+                assert "2024-01-01T08:06" in result[0].text
 
     @pytest.mark.asyncio
     async def test_weather_range_end_to_end(self):
@@ -323,6 +331,7 @@ class TestToolHandlerIntegration:
             "results": [{"latitude": 48.8566, "longitude": 2.3522}]
         }
         mock_weather_data = {
+            "utc_offset_seconds": 3600,
             "hourly": {
                 "time": ["2024-01-01T00:00", "2024-01-01T12:00"],
                 "temperature_2m": [10.0, 15.0],
@@ -341,6 +350,11 @@ class TestToolHandlerIntegration:
                 "uv_index": [1.0, 3.0],
                 "apparent_temperature": [9.0, 14.0],
                 "visibility": [7000, 9000]
+            },
+            "daily": {
+                "time": ["2024-01-01"],
+                "sunrise": ["2024-01-01T08:44"],
+                "sunset": ["2024-01-01T16:52"],
             }
         }
 

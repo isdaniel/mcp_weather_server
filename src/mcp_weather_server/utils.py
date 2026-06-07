@@ -1,5 +1,5 @@
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 from typing import List
 from zoneinfo import ZoneInfo
@@ -41,11 +41,17 @@ TOP-LEVEL FIELDS:
 - start_date: The beginning date of the weather forecast period (format: YYYY-MM-DD)
 - end_date: The ending date of the weather forecast period (format: YYYY-MM-DD)
 - weather_data: Array of hourly weather observations, each containing the fields described below
+- daily_sun_times: Array of daily sunrise and sunset times, one entry per day in the requested range
+
+DAILY_SUN_TIMES FIELDS (for each day, when present):
+- date: Date in YYYY-MM-DD format
+- sunrise: Sunrise time in ISO 8601 format (local time at the given location)
+- sunset: Sunset time in ISO 8601 format (local time at the given location)
 
 WEATHER_DATA FIELDS (for each hour):
 
 TIME & LOCATION:
-- time: ISO 8601 timestamp of the observation (UTC timezone)
+- time: ISO 8601 timestamp of the observation (local timezone of the given location)
 
 TEMPERATURE:
 - temperature_c: Air temperature in degrees Celsius (°C) at 2 meters above ground
@@ -176,21 +182,25 @@ Based on the above air quality data, please provide:
 7. Temporal trends if hourly data is available
         """
 
-def get_closest_utc_index(hourly_times: List[str]) -> int:
+def get_closest_utc_index(hourly_times: List[str], utc_offset_seconds: int = 0) -> int:
     """
-    Returns the index of the datetime in `hourly_times` closest to the current UTC time
-    or a provided datetime.
+    Returns the index of the datetime in `hourly_times` closest to the current UTC time.
 
-    :param hourly_times: List of ISO 8601 time strings (UTC)
+    :param hourly_times: List of ISO 8601 time strings. When timezone-naive, they are
+        interpreted as local times at the given UTC offset.
+    :param utc_offset_seconds: UTC offset of the location in seconds (from Open-Meteo
+        ``utc_offset_seconds`` field). Defaults to 0 (GMT).
     :return: Index of the closest datetime in the list
     """
-
     current_time = datetime.now(timezone.utc)
     parsed_times = [
         parser.isoparse(t).replace(tzinfo=timezone.utc) if parser.isoparse(t).tzinfo is None
         else parser.isoparse(t).astimezone(timezone.utc)
         for t in hourly_times
     ]
+    if utc_offset_seconds:
+        # Convert local times to UTC: UTC = local - offset
+        parsed_times = [t - timedelta(seconds=utc_offset_seconds) for t in parsed_times]
 
     return min(range(len(parsed_times)), key=lambda i: abs(parsed_times[i] - current_time))
 

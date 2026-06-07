@@ -24,7 +24,8 @@ A Model Context Protocol (MCP) server that provides weather information using th
   * Atmospheric pressure and cloud cover
   * UV index and visibility
   * "Feels like" temperature
-* Get weather data for a date range with hourly details
+  * Sunrise and sunset times (local time at the location)
+* Get weather data for a date range with hourly details and daily sunrise/sunset times
 * Get air quality information including:
   * PM2.5 and PM10 particulate matter
   * Ozone, nitrogen dioxide, carbon monoxide
