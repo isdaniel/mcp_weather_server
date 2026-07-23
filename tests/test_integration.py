@@ -58,7 +58,7 @@ class TestWeatherIntegration:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -114,7 +114,7 @@ class TestWeatherIntegration:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -169,7 +169,7 @@ class TestWeatherIntegration:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -432,36 +432,23 @@ class TestConcurrentOperations:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
+                params = params or {}
 
-                # Default to New York for any unmapped requests
-                default_geo = mock_responses["New York"]["geo"]
-                default_weather = mock_responses["New York"]["weather"]
-
-                # Determine which city based on the URL parameters
-                if "name=New%20York" in url or "name=New+York" in url:
-                    if "geocoding-api" in url:
-                        response.json.return_value = mock_responses["New York"]["geo"]
-                    else:
-                        response.json.return_value = mock_responses["New York"]["weather"]
-                elif "name=London" in url:
-                    if "geocoding-api" in url:
+                # Determine which city based on the request parameters
+                if "geocoding-api" in url:
+                    city_name = params.get("name", "")
+                    if city_name == "London":
                         response.json.return_value = mock_responses["London"]["geo"]
                     else:
-                        response.json.return_value = mock_responses["London"]["weather"]
-                elif "geocoding-api" in url:
-                    # Default geocoding response
-                    response.json.return_value = default_geo
+                        response.json.return_value = mock_responses["New York"]["geo"]
                 else:
-                    # Default weather response based on coordinates
-                    if "latitude=40.7128" in url:
-                        response.json.return_value = mock_responses["New York"]["weather"]
-                    elif "latitude=51.5074" in url:
+                    if params.get("latitude") == 51.5074:
                         response.json.return_value = mock_responses["London"]["weather"]
                     else:
-                        response.json.return_value = default_weather
+                        response.json.return_value = mock_responses["New York"]["weather"]
                 return response
 
             mock_client.get.side_effect = mock_get
@@ -526,7 +513,7 @@ class TestConcurrentOperations:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
