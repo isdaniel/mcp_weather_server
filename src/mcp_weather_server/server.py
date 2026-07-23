@@ -9,9 +9,8 @@ import contextlib
 import logging
 import os
 import sys
-import traceback
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
@@ -269,8 +268,6 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
 
     except Exception as e:
         logger.exception(f"Error executing tool {name}: {str(e)}")
-        error_traceback = traceback.format_exc()
-        logger.error(f"Full traceback: {error_traceback}")
 
         # Return error as text content
         return [
@@ -395,5 +392,4 @@ async def run_server(mode: str, host: str = "127.0.0.1", port: int = 8080, debug
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())
