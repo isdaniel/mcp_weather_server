@@ -124,7 +124,7 @@ python -m mcp_weather_server.server --mode stdio
 The SSE mode runs an HTTP server that provides MCP functionality via Server-Sent Events, making it accessible to web applications.
 
 ```bash
-# Start SSE server on default host/port (0.0.0.0:8080)
+# Start SSE server on default host/port (127.0.0.1:8080)
 python -m mcp_weather_server --mode sse
 
 # Specify custom host and port
@@ -142,7 +142,7 @@ python -m mcp_weather_server --mode sse --debug
 The streamable-http mode implements the new MCP Streamable HTTP protocol with a single `/mcp` endpoint. This mode supports both stateful (default) and stateless operations.
 
 ```bash
-# Start streamable HTTP server on default host/port (0.0.0.0:8080)
+# Start streamable HTTP server on default host/port (127.0.0.1:8080)
 python -m mcp_weather_server --mode streamable-http
 
 # Specify custom host and port
@@ -167,7 +167,7 @@ python -m mcp_weather_server --mode streamable-http --debug
 **Command Line Options:**
 ```
 --mode {stdio,sse,streamable-http}  Server mode: stdio (default), sse, or streamable-http
---host HOST                          Host to bind to (HTTP modes only, default: 0.0.0.0)
+--host HOST                          Host to bind to (HTTP modes only, default: 127.0.0.1)
 --port PORT                          Port to listen on (HTTP modes only, default: 8080)
 --stateless                          Run in stateless mode (streamable-http only)
 --debug                              Enable debug mode
