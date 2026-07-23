@@ -14,6 +14,32 @@ logger = logging.getLogger("mcp-weather")
 # Maximum accepted length for a city name, to reject abusive inputs early
 MAX_CITY_LENGTH = 100
 
+# Explicit timeout so a stalled upstream API can't hang a tool call
+REQUEST_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+# Retry transient connection failures at the transport level
+TRANSPORT_RETRIES = 2
+
+
+def make_http_client() -> httpx.AsyncClient:
+    """
+    Build an httpx client with explicit timeout and connect retries.
+    """
+    return httpx.AsyncClient(
+        timeout=REQUEST_TIMEOUT,
+        transport=httpx.AsyncHTTPTransport(retries=TRANSPORT_RETRIES),
+    )
+
+
+def parse_json_response(response: httpx.Response, api_name: str) -> Any:
+    """
+    Parse a JSON body, converting malformed payloads into a clear ValueError.
+    """
+    try:
+        return response.json()
+    except ValueError:
+        raise ValueError(f"Invalid JSON response from {api_name}")
+
 # Hourly variables requested from the Open-Meteo forecast API
 HOURLY_VARIABLES = (
     "temperature_2m,relative_humidity_2m,dew_point_2m,weather_code,"
@@ -97,7 +123,7 @@ class WeatherService:
         """
         city = validate_city(city)
 
-        async with httpx.AsyncClient() as client:
+        async with make_http_client() as client:
             try:
                 geo_response = await client.get(
                     self.BASE_GEO_URL,
@@ -107,7 +133,7 @@ class WeatherService:
                 if geo_response.status_code != 200:
                     raise ValueError(f"Geocoding API returned status {geo_response.status_code}")
 
-                geo_data = geo_response.json()
+                geo_data = parse_json_response(geo_response, "geocoding API")
                 if "results" not in geo_data or not geo_data["results"]:
                     raise ValueError(f"No coordinates found for city: {city}")
 
@@ -146,13 +172,13 @@ class WeatherService:
 
             logger.info(f"Fetching current weather for {city} ({latitude}, {longitude})")
 
-            async with httpx.AsyncClient() as client:
+            async with make_http_client() as client:
                 weather_response = await client.get(self.BASE_WEATHER_URL, params=params)
 
                 if weather_response.status_code != 200:
                     raise ValueError(f"Weather API returned status {weather_response.status_code}")
 
-                weather_data = weather_response.json()
+                weather_data = parse_json_response(weather_response, "weather API")
 
                 # Find the current hour index
                 current_index = utils.get_closest_utc_index(weather_data["hourly"]["time"])
@@ -236,13 +262,13 @@ class WeatherService:
 
             logger.info(f"Fetching weather history for {city} from {start_date} to {end_date}")
 
-            async with httpx.AsyncClient() as client:
+            async with make_http_client() as client:
                 response = await client.get(self.BASE_WEATHER_URL, params=params)
 
                 if response.status_code != 200:
                     raise ValueError(f"Weather API returned status {response.status_code}")
 
-                data = response.json()
+                data = parse_json_response(response, "weather API")
 
                 # Process the hourly data with enhanced variables
                 weather_data = []

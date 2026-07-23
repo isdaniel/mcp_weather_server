@@ -7,6 +7,7 @@ import httpx
 import logging
 from typing import Dict, List, Any
 from . import utils
+from .weather_service import make_http_client, parse_json_response
 
 logger = logging.getLogger("mcp-weather")
 
@@ -74,13 +75,13 @@ class AirQualityService:
         logger.info(f"Fetching air quality data for ({latitude}, {longitude})")
 
         try:
-            async with httpx.AsyncClient() as client:
+            async with make_http_client() as client:
                 response = await client.get(self.BASE_AIR_QUALITY_URL, params=params)
 
                 if response.status_code != 200:
                     raise ValueError(f"Air Quality API returned status {response.status_code}")
 
-                return response.json()
+                return parse_json_response(response, "air quality API")
 
         except httpx.RequestError as e:
             raise ValueError(f"Network error while fetching air quality data: {str(e)}")
