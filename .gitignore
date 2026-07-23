@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
 venv/
+.venv/
 .pytest_cache/
 node_modules
+.claude/settings.local.json
