@@ -6,8 +6,12 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Install dependencies and the package
-RUN (uv venv .venv) && (. .venv/bin/activate) && (uv pip install -e .)
+# Install dependencies and the package, then drop root privileges
+RUN uv venv .venv && uv pip install -e . \
+    && useradd --create-home --uid 1000 appuser \
+    && chown -R appuser:appuser /app
 
-# Run the server in SSE mode, reading port from PORT environment variable
+USER appuser
+
+# Run the server in stdio mode
 CMD ["uv", "run", "python", "-m", "mcp_weather_server", "--mode", "stdio"]
