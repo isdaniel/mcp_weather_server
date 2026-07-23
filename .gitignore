@@ -3,5 +3,7 @@ __pycache__/
 venv/
 .venv/
 .pytest_cache/
+.coverage
+*.egg-info/
 node_modules
 .claude/settings.local.json
