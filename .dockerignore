@@ -1,0 +1,17 @@
+.git
+.github
+.claude
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+node_modules
+tests
+.gitignore
+.dockerignore
+Dockerfile
+Dockerfile.streamable-http
+smithery.yaml
+glama.json
+server.json

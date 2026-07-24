@@ -7,6 +7,7 @@ import httpx
 import logging
 from typing import Dict, List, Any
 from . import utils
+from .weather_service import make_http_client, parse_json_response
 
 logger = logging.getLogger("mcp-weather")
 
@@ -20,6 +21,18 @@ class AirQualityService:
     """
 
     BASE_AIR_QUALITY_URL = "https://air-quality-api.open-meteo.com/v1/air-quality"
+
+    ALLOWED_HOURLY_VARS = frozenset({
+        "pm10",
+        "pm2_5",
+        "carbon_monoxide",
+        "nitrogen_dioxide",
+        "ozone",
+        "sulphur_dioxide",
+        "ammonia",
+        "dust",
+        "aerosol_optical_depth",
+    })
 
     def __init__(self):
         """Initialize the air quality service."""
@@ -48,25 +61,27 @@ class AirQualityService:
         if hourly_vars is None:
             hourly_vars = ["pm10", "pm2_5", "ozone", "nitrogen_dioxide", "carbon_monoxide"]
 
-        hourly_str = ",".join(hourly_vars)
+        invalid_vars = [v for v in hourly_vars if v not in self.ALLOWED_HOURLY_VARS]
+        if invalid_vars:
+            raise ValueError(f"Invalid air quality variables: {', '.join(sorted(invalid_vars))}")
 
-        url = (
-            f"{self.BASE_AIR_QUALITY_URL}"
-            f"?latitude={latitude}&longitude={longitude}"
-            f"&hourly={hourly_str}"
-            f"&timezone=GMT"
-        )
+        params = {
+            "latitude": latitude,
+            "longitude": longitude,
+            "hourly": ",".join(hourly_vars),
+            "timezone": "GMT",
+        }
 
-        logger.info(f"Fetching air quality data from: {url}")
+        logger.info(f"Fetching air quality data for ({latitude}, {longitude})")
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
+            async with make_http_client() as client:
+                response = await client.get(self.BASE_AIR_QUALITY_URL, params=params)
 
                 if response.status_code != 200:
                     raise ValueError(f"Air Quality API returned status {response.status_code}")
 
-                return response.json()
+                return parse_json_response(response, "air quality API")
 
         except httpx.RequestError as e:
             raise ValueError(f"Network error while fetching air quality data: {str(e)}")

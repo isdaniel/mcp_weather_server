@@ -6,10 +6,91 @@ This separates the business logic from the tool handlers.
 import httpx
 import logging
 from typing import Dict, List, Tuple, Any
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from . import utils
 
 logger = logging.getLogger("mcp-weather")
+
+# Maximum accepted length for a city name, to reject abusive inputs early
+MAX_CITY_LENGTH = 100
+
+# Explicit timeout so a stalled upstream API can't hang a tool call
+REQUEST_TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+# Retry transient connection failures at the transport level
+TRANSPORT_RETRIES = 2
+
+
+def make_http_client() -> httpx.AsyncClient:
+    """
+    Build an httpx client with explicit timeout and connect retries.
+    """
+    return httpx.AsyncClient(
+        timeout=REQUEST_TIMEOUT,
+        transport=httpx.AsyncHTTPTransport(retries=TRANSPORT_RETRIES),
+    )
+
+
+def parse_json_response(response: httpx.Response, api_name: str) -> Any:
+    """
+    Parse a JSON body, converting malformed payloads into a clear ValueError.
+    """
+    try:
+        return response.json()
+    except ValueError:
+        raise ValueError(f"Invalid JSON response from {api_name}")
+
+# Hourly variables requested from the Open-Meteo forecast API
+HOURLY_VARIABLES = (
+    "temperature_2m,relative_humidity_2m,dew_point_2m,weather_code,"
+    "wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
+    "precipitation,rain,snowfall,precipitation_probability,"
+    "pressure_msl,cloud_cover,uv_index,apparent_temperature,visibility"
+)
+
+
+def validate_city(city: Any) -> str:
+    """
+    Validate a city name argument.
+
+    Args:
+        city: The raw city argument from the tool call
+
+    Returns:
+        The stripped city name
+
+    Raises:
+        ValueError: If the city is not a non-empty string of reasonable length
+    """
+    if not isinstance(city, str) or not city.strip():
+        raise ValueError("City must be a non-empty string")
+    city = city.strip()
+    if len(city) > MAX_CITY_LENGTH:
+        raise ValueError(f"City name is too long (max {MAX_CITY_LENGTH} characters)")
+    return city
+
+
+def validate_date(value: Any, field_name: str) -> str:
+    """
+    Validate a date argument in YYYY-MM-DD format.
+
+    Args:
+        value: The raw date argument
+        field_name: Name of the field, used in error messages
+
+    Returns:
+        The validated date string
+
+    Raises:
+        ValueError: If the value is not a valid YYYY-MM-DD date
+    """
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string in YYYY-MM-DD format")
+    try:
+        date.fromisoformat(value)
+    except ValueError:
+        raise ValueError(f"{field_name} must be a valid date in YYYY-MM-DD format, got: {value!r}")
+    return value
 
 
 class WeatherService:
@@ -40,14 +121,19 @@ class WeatherService:
         Raises:
             ValueError: If the coordinates cannot be retrieved
         """
-        async with httpx.AsyncClient() as client:
+        city = validate_city(city)
+
+        async with make_http_client() as client:
             try:
-                geo_response = await client.get(f"{self.BASE_GEO_URL}?name={city}")
+                geo_response = await client.get(
+                    self.BASE_GEO_URL,
+                    params={"name": city, "count": 1},
+                )
 
                 if geo_response.status_code != 200:
                     raise ValueError(f"Geocoding API returned status {geo_response.status_code}")
 
-                geo_data = geo_response.json()
+                geo_data = parse_json_response(geo_response, "geocoding API")
                 if "results" not in geo_data or not geo_data["results"]:
                     raise ValueError(f"No coordinates found for city: {city}")
 
@@ -73,28 +159,26 @@ class WeatherService:
             ValueError: If weather data cannot be retrieved
         """
         try:
+            city = validate_city(city)
             latitude, longitude = await self.get_coordinates(city)
 
-            # Build the weather API URL for current conditions with enhanced variables
-            url = (
-                f"{self.BASE_WEATHER_URL}"
-                f"?latitude={latitude}&longitude={longitude}"
-                f"&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,weather_code,"
-                f"wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
-                f"precipitation,rain,snowfall,precipitation_probability,"
-                f"pressure_msl,cloud_cover,uv_index,apparent_temperature,visibility"
-                f"&timezone=GMT&forecast_days=1"
-            )
+            params = {
+                "latitude": latitude,
+                "longitude": longitude,
+                "hourly": HOURLY_VARIABLES,
+                "timezone": "GMT",
+                "forecast_days": 1,
+            }
 
-            logger.info(f"Fetching current weather from: {url}")
+            logger.info(f"Fetching current weather for {city} ({latitude}, {longitude})")
 
-            async with httpx.AsyncClient() as client:
-                weather_response = await client.get(url)
+            async with make_http_client() as client:
+                weather_response = await client.get(self.BASE_WEATHER_URL, params=params)
 
                 if weather_response.status_code != 200:
                     raise ValueError(f"Weather API returned status {weather_response.status_code}")
 
-                weather_data = weather_response.json()
+                weather_data = parse_json_response(weather_response, "weather API")
 
                 # Find the current hour index
                 current_index = utils.get_closest_utc_index(weather_data["hourly"]["time"])
@@ -159,28 +243,32 @@ class WeatherService:
             ValueError: If weather data cannot be retrieved
         """
         try:
+            city = validate_city(city)
+            start_date = validate_date(start_date, "start_date")
+            end_date = validate_date(end_date, "end_date")
+            if date.fromisoformat(start_date) > date.fromisoformat(end_date):
+                raise ValueError("start_date must be on or before end_date")
+
             latitude, longitude = await self.get_coordinates(city)
 
-            # Build the weather API URL for date range with enhanced variables
-            url = (
-                f"{self.BASE_WEATHER_URL}"
-                f"?latitude={latitude}&longitude={longitude}"
-                f"&hourly=temperature_2m,relative_humidity_2m,dew_point_2m,weather_code,"
-                f"wind_speed_10m,wind_direction_10m,wind_gusts_10m,"
-                f"precipitation,rain,snowfall,precipitation_probability,"
-                f"pressure_msl,cloud_cover,uv_index,apparent_temperature,visibility"
-                f"&timezone=GMT&start_date={start_date}&end_date={end_date}"
-            )
+            params = {
+                "latitude": latitude,
+                "longitude": longitude,
+                "hourly": HOURLY_VARIABLES,
+                "timezone": "GMT",
+                "start_date": start_date,
+                "end_date": end_date,
+            }
 
-            logger.info(f"Fetching weather history from: {url}")
+            logger.info(f"Fetching weather history for {city} from {start_date} to {end_date}")
 
-            async with httpx.AsyncClient() as client:
-                response = await client.get(url)
+            async with make_http_client() as client:
+                response = await client.get(self.BASE_WEATHER_URL, params=params)
 
                 if response.status_code != 200:
                     raise ValueError(f"Weather API returned status {response.status_code}")
 
-                data = response.json()
+                data = parse_json_response(response, "weather API")
 
                 # Process the hourly data with enhanced variables
                 weather_data = []

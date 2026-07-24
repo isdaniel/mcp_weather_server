@@ -7,10 +7,10 @@ import argparse
 import asyncio
 import contextlib
 import logging
+import os
 import sys
-import traceback
 from collections.abc import AsyncIterator, Sequence
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 from starlette.applications import Starlette
 from starlette.middleware.cors import CORSMiddleware
@@ -187,18 +187,33 @@ def create_streamable_http_app(mcp_server: Server, *, debug: bool = False, state
         lifespan=lifespan,
     )
 
-    # Add CORS middleware
+    # Add CORS middleware. Origins can be restricted via the
+    # MCP_ALLOWED_ORIGINS env var (comma-separated list); defaults to "*".
+    # Credentials are only allowed when origins are explicitly restricted:
+    # wildcard origin + credentials is an unsafe combination that lets any
+    # website drive the server from a browser.
+    allowed_origins = get_allowed_origins()
     starlette_app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
-        allow_headers=["*"],
+        allow_origins=allowed_origins,
+        allow_credentials="*" not in allowed_origins,
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=["mcp-session-id", "mcp-protocol-version", "content-type", "authorization"],
         expose_headers=["mcp-session-id", "mcp-protocol-version"],
         max_age=86400,
     )
 
     return starlette_app
+
+
+def get_allowed_origins() -> list[str]:
+    """
+    Read the list of allowed CORS origins from the MCP_ALLOWED_ORIGINS
+    environment variable (comma-separated). Defaults to ["*"].
+    """
+    raw = os.environ.get("MCP_ALLOWED_ORIGINS", "*")
+    origins = [origin.strip() for origin in raw.split(",") if origin.strip()]
+    return origins or ["*"]
 
 
 @app.list_tools()
@@ -253,8 +268,6 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
 
     except Exception as e:
         logger.exception(f"Error executing tool {name}: {str(e)}")
-        error_traceback = traceback.format_exc()
-        logger.error(f"Full traceback: {error_traceback}")
 
         # Return error as text content
         return [
@@ -265,30 +278,34 @@ async def call_tool(name: str, arguments: Any) -> Sequence[TextContent | ImageCo
         ]
 
 
-async def main():
+def build_arg_parser() -> argparse.ArgumentParser:
     """
-    Main entry point for the MCP weather server.
-    Supports stdio, SSE, and streamable-http modes based on command line arguments.
-    For Smithery deployments, reads PORT from environment variable.
+    Build the command line argument parser for the server.
     """
-    # Parse command line arguments
     parser = argparse.ArgumentParser(description='MCP Weather Server - supports stdio, SSE, and streamable-http modes')
     parser.add_argument('--mode', choices=['stdio', 'sse', 'streamable-http'], default='stdio',
                         help='Server mode: stdio (default), sse, or streamable-http')
-    parser.add_argument('--host', default='0.0.0.0',
-                        help='Host to bind to (HTTP modes only, default: 0.0.0.0)')
+    parser.add_argument('--host', default='127.0.0.1',
+                        help='Host to bind to (HTTP modes only, default: 127.0.0.1; use 0.0.0.0 to expose on all interfaces)')
     parser.add_argument('--port', type=int, default=None,
                         help='Port to listen on (HTTP modes only, default: from PORT env var or 8080)')
     parser.add_argument('--stateless', action='store_true',
                         help='Run in stateless mode (streamable-http only, creates fresh transport per request)')
     parser.add_argument('--debug', action='store_true',
                         help='Enable debug mode')
+    return parser
 
-    args = parser.parse_args()
+
+async def main():
+    """
+    Main entry point for the MCP weather server.
+    Supports stdio, SSE, and streamable-http modes based on command line arguments.
+    For Smithery deployments, reads PORT from environment variable.
+    """
+    args = build_arg_parser().parse_args()
 
     # Get port from environment variable (Smithery sets this to 8081)
     # or use command line argument, or default to 8080
-    import os
     port = args.port if args.port is not None else int(os.environ.get("PORT", 8080))
 
     try:
@@ -307,7 +324,7 @@ async def main():
         raise
 
 
-async def run_server(mode: str, host: str = "0.0.0.0", port: int = 8080, debug: bool = False, stateless: bool = False):
+async def run_server(mode: str, host: str = "127.0.0.1", port: int = 8080, debug: bool = False, stateless: bool = False):
     """
     Unified server runner that supports stdio, SSE, and streamable-http modes.
 
@@ -375,5 +392,4 @@ async def run_server(mode: str, host: str = "0.0.0.0", port: int = 8080, debug: 
 
 
 if __name__ == "__main__":
-    import asyncio
     asyncio.run(main())

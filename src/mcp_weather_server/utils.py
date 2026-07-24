@@ -183,7 +183,10 @@ def get_closest_utc_index(hourly_times: List[str]) -> int:
 
     :param hourly_times: List of ISO 8601 time strings (UTC)
     :return: Index of the closest datetime in the list
+    :raises ValueError: If the list is empty or contains unparseable times
     """
+    if not hourly_times:
+        raise ValueError("No hourly time data available in API response")
 
     current_time = datetime.now(timezone.utc)
     parsed_times = [

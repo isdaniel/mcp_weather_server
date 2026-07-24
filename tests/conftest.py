@@ -330,7 +330,7 @@ def mock_successful_geo_client():
     from unittest.mock import AsyncMock, Mock
     client = AsyncMock()
 
-    def mock_get(url):
+    def mock_get(url, params=None, **kwargs):
         response = Mock()
         response.status_code = 200
 

@@ -53,7 +53,7 @@ class TestPerformance:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -106,7 +106,7 @@ class TestPerformance:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -198,7 +198,7 @@ class TestPerformance:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -254,7 +254,7 @@ class TestLoadTesting:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -315,7 +315,7 @@ class TestLoadTesting:
         with patch('httpx.AsyncClient') as mock_client_class:
             mock_client = AsyncMock()
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 response = Mock()
                 response.status_code = 200
                 if "geocoding-api" in url:
@@ -371,7 +371,7 @@ class TestStressConditions:
         error_count = 0
         success_count = 0
 
-        def mock_get_with_errors(url):
+        def mock_get_with_errors(url, params=None, **kwargs):
             nonlocal error_count, success_count
             response = Mock()
 

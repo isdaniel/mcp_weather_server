@@ -6,7 +6,7 @@ This module contains time and timezone-related tool implementations.
 import json
 import logging
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import datetime, timezone as dt_timezone
 from mcp.types import Tool, TextContent, ImageContent, EmbeddedResource
 from .toolhandler import ToolHandler
 from .. import utils
@@ -118,7 +118,7 @@ class GetTimeZoneInfoToolHandler(ToolHandler):
             # Get timezone info
             timezone = utils.get_zoneinfo(timezone_name)
             current_time = datetime.now(timezone)
-            utc_time = datetime.utcnow()
+            utc_time = datetime.now(dt_timezone.utc)
 
             # Calculate UTC offset
             offset = current_time.utcoffset()
@@ -203,25 +203,28 @@ class ConvertTimeToolHandler(ToolHandler):
             to_timezone = utils.get_zoneinfo(to_timezone_name)
 
             # Parse the datetime
+            original_timezone_name = from_timezone_name
             if datetime_str.lower() == "now":
                 source_time = datetime.now(from_timezone)
+            elif datetime_str.endswith('Z'):
+                # A trailing Z means the timestamp is UTC, regardless of from_timezone
+                source_time = datetime.fromisoformat(datetime_str[:-1]).replace(tzinfo=dt_timezone.utc)
+                original_timezone_name = "UTC"
             else:
-                # Parse the datetime string and localize it
-                if datetime_str.endswith('Z'):
-                    # UTC time
-                    naive_time = datetime.fromisoformat(datetime_str[:-1])
-                    source_time = naive_time.replace(tzinfo=from_timezone)
+                parsed_time = datetime.fromisoformat(datetime_str)
+                if parsed_time.tzinfo is None:
+                    # Naive timestamps are interpreted as local time in from_timezone
+                    source_time = parsed_time.replace(tzinfo=from_timezone)
                 else:
-                    # Assume local time in from_timezone
-                    naive_time = datetime.fromisoformat(datetime_str)
-                    source_time = naive_time.replace(tzinfo=from_timezone)
+                    # Keep an explicit offset if the string carries one
+                    source_time = parsed_time
 
             # Convert to target timezone
             target_time = source_time.astimezone(to_timezone)
 
             conversion_result = {
                 "original_datetime": source_time.isoformat(timespec="seconds"),
-                "original_timezone": from_timezone_name,
+                "original_timezone": original_timezone_name,
                 "converted_datetime": target_time.isoformat(timespec="seconds"),
                 "converted_timezone": to_timezone_name,
                 "time_difference_hours": (target_time.utcoffset().total_seconds() - source_time.utcoffset().total_seconds()) / 3600

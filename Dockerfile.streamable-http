@@ -6,8 +6,12 @@ WORKDIR /app
 # Copy the current directory contents into the container at /app
 COPY . /app
 
-# Install dependencies and the package
-RUN (uv venv .venv) && (. .venv/bin/activate) && (uv pip install -e .)
+# Install dependencies and the package, then drop root privileges
+RUN uv venv .venv && uv pip install -e . \
+    && useradd --create-home --uid 1000 appuser \
+    && chown -R appuser:appuser /app
+
+USER appuser
 
 ENV TRANSPORT=http
 ENV PORT=8081

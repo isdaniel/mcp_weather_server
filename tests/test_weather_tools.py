@@ -294,7 +294,7 @@ class TestToolHandlerIntegration:
             weather_response.json.return_value = mock_weather_data
 
             # Return different responses for different URLs
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 if "geocoding-api" in url:
                     return geo_response
                 elif "api.open-meteo.com" in url:
@@ -355,7 +355,7 @@ class TestToolHandlerIntegration:
             weather_response.status_code = 200
             weather_response.json.return_value = mock_weather_data
 
-            def mock_get(url):
+            def mock_get(url, params=None, **kwargs):
                 if "geocoding-api" in url:
                     return geo_response
                 else:
