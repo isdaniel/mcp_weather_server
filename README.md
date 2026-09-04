@@ -1,4 +1,4 @@
-[![smithery badge](https://smithery.ai/badge/@isdaniel/mcp_weather_server)](https://smithery.ai/server/@isdaniel/mcp_weather_server)
+[![LightNow](https://lightnow.ai/badge/io.github.isdaniel/mcp_weather_server)](https://lightnow.ai/servers/io.github.isdaniel/mcp_weather_server)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/mcp-weather-server)](https://pypi.org/project/mcp-weather-server/)
 [![PyPI - Version](https://img.shields.io/pypi/v/mcp-weather-server)](https://pypi.org/project/mcp-weather-server/)
 [![PyPI Downloads](https://static.pepy.tech/personalized-badge/mcp-weather-server?period=total&units=INTERNATIONAL_SYSTEM&left_color=GRAY&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/mcp-weather-server)
